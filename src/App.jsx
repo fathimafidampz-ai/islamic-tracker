@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
 import { supabase } from './lib/supabase';
 import Auth from './pages/Auth';
 import { startNotificationService, stopNotificationService } from './lib/notifications';
@@ -11,7 +12,12 @@ import Notes from './pages/Notes';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
-const BottomNav = () => {
+const BottomNav = ({ session }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showPopup, setShowPopup] = useState(false);
+  const [pendingPath, setPendingPath] = useState(null);
+
   const navItems = [
     { path: '/', icon: Moon, label: 'Worship' },
     { path: '/routines', icon: CheckSquare, label: 'Routine' },
@@ -20,28 +26,91 @@ const BottomNav = () => {
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
 
+  const checkIncompleteDikrs = () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const userId = session?.user?.id;
+    const localCacheKey = userId ? `worship_cache_${userId}_${todayStr}` : `worship_cache_${todayStr}`;
+    const cachedDataStr = localStorage.getItem(localCacheKey);
+    if (!cachedDataStr) return false;
+    
+    const cachedData = JSON.parse(cachedDataStr);
+    const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    
+    for (const p of prayers) {
+      const fardKey = `${p}_fard`;
+      if (cachedData[fardKey] && cachedData[fardKey].is_completed) {
+        const completedDikrs = Object.keys(cachedData).filter(k => k.startsWith(`${p}_dikr_`) && cachedData[k].is_completed);
+        if (completedDikrs.length < 7) {
+          return true; // Missing some dikrs!
+        }
+      }
+    }
+    return false;
+  };
+
+  const handleNavClick = (e, path) => {
+    if (location.pathname === '/' && path !== '/') {
+      if (checkIncompleteDikrs()) {
+        e.preventDefault();
+        setPendingPath(path);
+        setShowPopup(true);
+      }
+    }
+  };
+
   return (
-    <nav className="glass-nav" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, 
-      height: 'var(--nav-height)', display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-      paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 50
-    }}>
-      {navItems.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          style={({ isActive }) => ({
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            textDecoration: 'none', gap: '4px',
-            color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-            transition: 'color 0.2s ease'
-          })}
-        >
-          <item.icon size={22} strokeWidth={2.5} />
-          <span style={{ fontSize: '0.65rem', fontWeight: '500' }}>{item.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      {showPopup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div className="glass-panel animate-in" style={{ padding: '24px', textAlign: 'center', maxWidth: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <AlertCircle color="#f59e0b" size={48} style={{ marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Dikrs Incomplete</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              You marked a Fard prayer as complete but didn't complete its Adhkar (dikrs). Are you sure you want to leave?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                onClick={() => setShowPopup(false)} 
+                className="glass-panel" 
+                style={{ flex: 1, padding: '12px', color: 'var(--text-main)', cursor: 'pointer', border: '1px solid var(--glass-border)' }}
+              >
+                Go Back
+              </button>
+              <button 
+                onClick={() => { setShowPopup(false); navigate(pendingPath); }} 
+                className="btn-primary" 
+                style={{ flex: 1 }}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="glass-nav" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, 
+        height: 'var(--nav-height)', display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        paddingBottom: 'env(safe-area-inset-bottom)', zIndex: 50
+      }}>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            onClick={(e) => handleNavClick(e, item.path)}
+            style={({ isActive }) => ({
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              textDecoration: 'none', gap: '4px',
+              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+              transition: 'color 0.2s ease'
+            })}
+          >
+            <item.icon size={22} strokeWidth={2.5} />
+            <span style={{ fontSize: '0.65rem', fontWeight: '500' }}>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </>
   );
 };
 
@@ -89,7 +158,7 @@ function App() {
           <Route path="/analytics" element={<Analytics session={session} />} />
           <Route path="/settings" element={<Settings session={session} />} />
         </Routes>
-        <BottomNav />
+        <BottomNav session={session} />
       </div>
     </Router>
   );

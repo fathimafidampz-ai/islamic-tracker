@@ -158,12 +158,7 @@ const Analytics = ({ session }) => {
       </header>
 
       {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '30px' }}>
-        <div className="glass-panel" style={{ padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Flame size={24} color="#f59e0b" style={{ marginBottom: '8px' }} />
-          <h2 style={{ fontSize: '1.4rem' }}>{stats.currentStreak}</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Day Streak</p>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '30px' }}>
         <div className="glass-panel" style={{ padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Target size={24} color="var(--primary)" style={{ marginBottom: '8px' }} />
           <h2 style={{ fontSize: '1.4rem' }}>{stats.avgScore}%</h2>
