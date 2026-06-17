@@ -12,6 +12,9 @@
   --glass-border: rgba(0, 0, 0, 0.05);
   --nav-height: 70px;
   --nav-bg: rgba(255, 255, 255, 0.85);
+  --note-1: rgba(59, 130, 246, 0.08);
+  --note-2: rgba(16, 185, 129, 0.08);
+  --note-3: rgba(139, 92, 246, 0.08);
 }
 
 [data-theme="dark"] {
@@ -26,6 +29,9 @@
   --glass-border: rgba(255, 255, 255, 0.1);
   --nav-height: 70px;
   --nav-bg: rgba(15, 23, 42, 0.85);
+  --note-1: rgba(30, 41, 59, 0.8);
+  --note-2: rgba(51, 65, 85, 0.8);
+  --note-3: rgba(15, 23, 42, 0.8);
 }
 
 * {

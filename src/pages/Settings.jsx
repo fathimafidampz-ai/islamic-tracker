@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Bell, Shield, Download, LogOut, ChevronRight, Moon } from 'lucide-react';
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { generateDailyTasks } from '../lib/worshipLogic';
+import { parseISO, format, subDays, differenceInDays } from 'date-fns';
 
 const Settings = ({ session }) => {
   const user = session?.user;
@@ -52,6 +56,90 @@ const Settings = ({ session }) => {
     </div>
   );
 
+  const handleExportData = () => {
+    const doc = new jsPDF('landscape');
+    doc.setFontSize(16);
+    doc.text("Noor App - Detailed Activity Report", 14, 15);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    let earliestDate = new Date();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('worship_cache_')) {
+        const dateStr = key.replace('worship_cache_', '');
+        const d = parseISO(dateStr);
+        if (!isNaN(d) && d < earliestDate) {
+          earliestDate = d;
+        }
+      }
+    }
+
+    const daysDiff = Math.max(0, differenceInDays(new Date(), earliestDate));
+    const allDays = Array.from({ length: daysDiff + 1 }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd'));
+
+    const tableData = [];
+    const categories = ['Tahajjud', 'Fajr', 'Duha', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Recitation'];
+
+    allDays.forEach(dateStr => {
+      let localCache = {};
+      try {
+        localCache = JSON.parse(localStorage.getItem(`worship_cache_${dateStr}`)) || {};
+      } catch (e) {}
+      
+      const dayTasksRaw = generateDailyTasks(parseISO(dateStr));
+      
+      let overallCompleted = 0;
+      let overallTotal = dayTasksRaw.length;
+      
+      const catStats = {};
+      categories.forEach(c => catStats[c] = { comp: 0, tot: 0 });
+
+      dayTasksRaw.forEach(task => {
+        const isComp = localCache && localCache[task.id]?.is_completed;
+        if (isComp) overallCompleted++;
+        
+        if (catStats[task.category]) {
+          catStats[task.category].tot++;
+          if (isComp) catStats[task.category].comp++;
+        }
+      });
+      
+      const overallScore = overallTotal === 0 ? 0 : Math.round((overallCompleted / overallTotal) * 100);
+      
+      const row = [
+        dateStr,
+        `${overallScore}%`
+      ];
+
+      categories.forEach(c => {
+        const stats = catStats[c];
+        const score = stats.tot === 0 ? '-' : `${Math.round((stats.comp / stats.tot) * 100)}%`;
+        row.push(score);
+      });
+
+      tableData.push(row);
+    });
+
+    if (tableData.length === 0) {
+      tableData.push(["No data recorded yet", "-", "-", "-", "-", "-", "-", "-", "-", "-"]);
+    }
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['Date', 'Overall', ...categories]],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
+      columnStyles: { 0: { halign: 'left' } },
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    const exportFileDefaultName = `noor_detailed_report_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(exportFileDefaultName);
+  };
+
   return (
     <div className="page-container animate-in">
       <header style={{ marginBottom: '30px' }}>
@@ -79,7 +167,7 @@ const Settings = ({ session }) => {
       <SettingRow icon={Bell} label={notificationsEnabled ? "Notifications (Enabled)" : "Notifications (Muted)"} color="#f59e0b" onClick={toggleNotifications} />
       
       <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', marginLeft: '4px', marginTop: '24px' }}>Data & Privacy</h3>
-      <SettingRow icon={Download} label="Export My Data" color="#3b82f6" onClick={() => alert('Data exported to your downloads folder.')} />
+      <SettingRow icon={Download} label="Export My Data" color="#3b82f6" onClick={handleExportData} />
 
       <button 
         onClick={handleSignOut}

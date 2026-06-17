@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { format, subDays, parseISO } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, subDays, parseISO, differenceInDays, startOfWeek } from 'date-fns';
 import { Flame, Trophy, Target, X, CheckCircle2, Circle, ListPlus } from 'lucide-react';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +31,7 @@ const Analytics = ({ session }) => {
   const [selectedDay, setSelectedDay] = useState(null); // Used for displaying the round charts below the graph
   const [detailedDay, setDetailedDay] = useState(null); // Full day object for the detailed checklist modal
   const [triggerRender, setTriggerRender] = useState(0); 
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     fetchAnalytics();
@@ -38,13 +39,26 @@ const Analytics = ({ session }) => {
 
   const fetchAnalytics = async () => {
     try {
-      const last7Days = Array.from({ length: 7 }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd')).reverse();
+      let earliestDate = new Date();
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('worship_cache_')) {
+          const dateStr = key.replace('worship_cache_', '');
+          const d = parseISO(dateStr);
+          if (!isNaN(d) && d < earliestDate) {
+            earliestDate = d;
+          }
+        }
+      }
+
+      const daysDiff = Math.max(7, differenceInDays(new Date(), earliestDate) + 1);
+      const allDays = Array.from({ length: daysDiff }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd')).reverse();
       
       let currentStreak = 0;
       let totalPoints = 0;
       let scoreSum = 0;
 
-      const chartData = last7Days.map(dateStr => {
+      const chartData = allDays.map(dateStr => {
         const localCacheStr = localStorage.getItem(`worship_cache_${dateStr}`);
         const localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
         
@@ -90,19 +104,11 @@ const Analytics = ({ session }) => {
       });
 
       setStats({
-        avgScore: Math.round(scoreSum / 7),
+        avgScore: Math.round(scoreSum / daysDiff),
         currentStreak,
         totalPoints
       });
       setData(chartData);
-
-      // Keep selectedDay synced
-      if (selectedDay) {
-        const updated = chartData.find(d => d.fullDate === selectedDay.fullDate);
-        if (updated) setSelectedDay(updated);
-      } else if (chartData.length > 0) {
-        setSelectedDay(chartData[chartData.length - 1]);
-      }
 
       // Keep modal synced
       if (detailedDay) {
@@ -166,49 +172,76 @@ const Analytics = ({ session }) => {
       </div>
 
       {/* Chart */}
-      <div className="glass-panel" style={{ padding: '20px', height: '300px', marginBottom: '30px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '20px', color: 'var(--text-muted)' }}>Last 7 Days (Tap a bar)</h3>
+      <div className="glass-panel" style={{ padding: '20px', height: '300px', marginBottom: '30px', display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{ fontSize: '1.1rem', marginBottom: '20px', color: 'var(--text-muted)' }}>Progress Over Time (Since Started)</h3>
         {loading ? (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading...</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading...</div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} onClick={handleChartClick}>
-              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
-              />
-              <Bar dataKey="score" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }}>
-                {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={selectedDay && selectedDay.fullDate === entry.fullDate ? '#3b82f6' : (entry.score === 100 ? '#10b981' : 'rgba(59, 130, 246, 0.8)')} 
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
+                <Tooltip 
+                  contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
+                  formatter={(value) => [`${value}%`, 'Average Score']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="score" 
+                  stroke="var(--primary)" 
+                  strokeWidth={3} 
+                  dot={{ fill: 'var(--bg-card)', stroke: 'var(--primary)', strokeWidth: 2, r: 4 }} 
+                  activeDot={{ r: 6, fill: '#10b981', stroke: '#10b981' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 
-      {/* Selected Day Details (Minimal) */}
-      {selectedDay && (
-        <div className="animate-in glass-panel" style={{ padding: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(parseISO(selectedDay.fullDate), 'EEEE, MMM do')}</h3>
-            <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{selectedDay.score}% Total</span>
-          </div>
+      {/* All Days List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+        <h3 style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>Activity History</h3>
+        {data.slice().reverse().slice(0, visibleCount).map(day => (
+          <div key={day.fullDate} className="animate-in glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(parseISO(day.fullDate), 'EEEE, MMM do')}</h3>
+              <span style={{ color: day.score === 100 ? '#10b981' : 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{day.score}% Total</span>
+            </div>
 
+            <button 
+              className="btn-primary" 
+              style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', borderRadius: '30px' }}
+              onClick={() => setDetailedDay(day)}
+            >
+              <ListPlus size={20} />
+              Details
+            </button>
+          </div>
+        ))}
+        
+        {visibleCount < data.length && (
           <button 
-            className="btn-primary" 
-            style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', borderRadius: '30px' }}
-            onClick={() => setDetailedDay(selectedDay)}
+            className="glass-panel" 
+            style={{ 
+              padding: '16px', 
+              width: '100%', 
+              borderRadius: '16px', 
+              fontWeight: 'bold', 
+              marginTop: '8px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              color: 'var(--text-main)',
+              cursor: 'pointer',
+              border: '1px solid var(--glass-border)'
+            }}
+            onClick={() => setVisibleCount(prev => prev + 10)}
           >
-            <ListPlus size={20} />
-            Click for details
+            Show More
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* FULL SCREEN DETAILED EDIT MODAL */}
       <AnimatePresence>

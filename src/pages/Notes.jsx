@@ -75,7 +75,7 @@ const Notes = ({ session }) => {
         user_id: session?.user?.id,
         title: formTitle,
         content: formContent,
-        color: ['#1e293b', '#334155', '#0f172a'][Math.floor(Math.random() * 3)],
+        color: ['var(--note-1)', 'var(--note-2)', 'var(--note-3)'][Math.floor(Math.random() * 3)],
         is_pinned: false,
         created_at: new Date().toISOString()
       };
@@ -134,6 +134,13 @@ const Notes = ({ session }) => {
     (n.content?.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const getNoteBackground = (color) => {
+    if (color === '#1e293b') return 'var(--note-1)';
+    if (color === '#334155') return 'var(--note-2)';
+    if (color === '#0f172a') return 'var(--note-3)';
+    return color || 'var(--bg-card)';
+  };
+
   return (
     <div className="page-container animate-in">
       <header style={{ marginBottom: '24px' }}>
@@ -164,7 +171,7 @@ const Notes = ({ session }) => {
               key={note.id} 
               className="glass-panel" 
               onClick={() => openEditForm(note)}
-              style={{ background: note.color, padding: '16px', position: 'relative', minHeight: '120px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }}
+              style={{ background: getNoteBackground(note.color), padding: '16px', position: 'relative', minHeight: '120px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }}
             >
               <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '4px' }}>
                 <button onClick={(e) => { e.stopPropagation(); togglePin(note.id, note.is_pinned); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
@@ -226,7 +233,7 @@ const Notes = ({ session }) => {
         <button 
           className="btn-primary" 
           onClick={openCreateForm}
-          style={{ position: 'fixed', bottom: 'calc(var(--nav-height) + 24px)', right: '24px', width: '56px', height: '56px', borderRadius: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)', zIndex: 10 }}>
+          style={{ padding: 0, position: 'fixed', bottom: 'calc(var(--nav-height) + 24px)', right: '24px', width: '56px', height: '56px', borderRadius: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)', zIndex: 10 }}>
           <Plus size={28} />
         </button>
       )}
