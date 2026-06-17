@@ -64,11 +64,13 @@ const Settings = ({ session }) => {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
 
+    const userId = session?.user?.id;
+    const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
     let earliestDate = new Date();
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('worship_cache_')) {
-        const dateStr = key.replace('worship_cache_', '');
+      if (key && key.startsWith(prefix)) {
+        const dateStr = key.replace(prefix, '');
         const d = parseISO(dateStr);
         if (!isNaN(d) && d < earliestDate) {
           earliestDate = d;
@@ -85,7 +87,8 @@ const Settings = ({ session }) => {
     allDays.forEach(dateStr => {
       let localCache = {};
       try {
-        localCache = JSON.parse(localStorage.getItem(`worship_cache_${dateStr}`)) || {};
+        const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
+        localCache = JSON.parse(localStorage.getItem(localCacheKey)) || {};
       } catch (e) {}
       
       const dayTasksRaw = generateDailyTasks(parseISO(dateStr));

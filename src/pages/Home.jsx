@@ -35,7 +35,7 @@ const Home = ({ session }) => {
     const userId = session?.user?.id;
     
     // Load from local storage as a primary fallback
-    const localCacheKey = `worship_cache_${todayStr}`;
+    const localCacheKey = userId ? `worship_cache_${userId}_${todayStr}` : `worship_cache_${todayStr}`;
     const cachedDataStr = localStorage.getItem(localCacheKey);
     let cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : {};
 
@@ -108,7 +108,8 @@ const Home = ({ session }) => {
     calculateProgress(newTasks);
 
     // Save to LocalStorage immediately
-    const localCacheKey = `worship_cache_${todayStr}`;
+    const userId = session?.user?.id;
+    const localCacheKey = userId ? `worship_cache_${userId}_${todayStr}` : `worship_cache_${todayStr}`;
     const existingCache = JSON.parse(localStorage.getItem(localCacheKey) || '{}');
     existingCache[task.id] = { is_completed: newVal, count_reached: currentCount };
     localStorage.setItem(localCacheKey, JSON.stringify(existingCache));
@@ -147,7 +148,8 @@ const Home = ({ session }) => {
     setTasks(newTasks);
 
     // Save to LocalStorage immediately
-    const localCacheKey = `worship_cache_${todayStr}`;
+    const userId = session?.user?.id;
+    const localCacheKey = userId ? `worship_cache_${userId}_${todayStr}` : `worship_cache_${todayStr}`;
     const existingCache = JSON.parse(localStorage.getItem(localCacheKey) || '{}');
     const existingEntry = existingCache[activeTask.id] || { is_completed: false };
     existingCache[activeTask.id] = { ...existingEntry, count_reached: newCount };

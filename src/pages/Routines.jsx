@@ -31,7 +31,9 @@ const Routines = ({ session }) => {
   };
 
   const fetchRoutines = async () => {
-    const cachedStr = localStorage.getItem('noor_routines_cache');
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_routines_cache_${userId}` : 'noor_routines_cache';
+    const cachedStr = localStorage.getItem(cacheKey);
     const cachedRoutines = cachedStr ? JSON.parse(cachedStr) : [];
     
     try {
@@ -43,7 +45,7 @@ const Routines = ({ session }) => {
         if (error) throw error;
         const sortedData = sortRoutines(data || []);
         setRoutines(sortedData);
-        localStorage.setItem('noor_routines_cache', JSON.stringify(sortedData));
+        localStorage.setItem(cacheKey, JSON.stringify(sortedData));
       } else {
         setRoutines(sortRoutines(cachedRoutines));
       }
@@ -105,7 +107,9 @@ const Routines = ({ session }) => {
 
     updatedRoutines = sortRoutines(updatedRoutines);
     setRoutines(updatedRoutines);
-    localStorage.setItem('noor_routines_cache', JSON.stringify(updatedRoutines));
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_routines_cache_${userId}` : 'noor_routines_cache';
+    localStorage.setItem(cacheKey, JSON.stringify(updatedRoutines));
     
     setIsCreating(false);
     
@@ -131,7 +135,9 @@ const Routines = ({ session }) => {
     if (!window.confirm('Delete this routine?')) return;
     const updated = routines.filter(r => r.id !== id);
     setRoutines(updated);
-    localStorage.setItem('noor_routines_cache', JSON.stringify(updated));
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_routines_cache_${userId}` : 'noor_routines_cache';
+    localStorage.setItem(cacheKey, JSON.stringify(updated));
     
     if (session?.user?.id && session.user.id !== '00000000-0000-0000-0000-000000000000') {
       try {

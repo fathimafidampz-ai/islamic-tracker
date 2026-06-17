@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-do
 import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import Auth from './pages/Auth';
+import { startNotificationService, stopNotificationService } from './lib/notifications';
 
 import Home from './pages/Home';
 import Routines from './pages/Routines';
@@ -56,30 +57,37 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      if (session) startNotificationService(session);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) startNotificationService(session);
+      else stopNotificationService();
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Bypassing real auth for now, providing a mock session
-  const mockSession = { user: { id: '00000000-0000-0000-0000-000000000000', email: 'admin@noor.com' } };
-  const currentSession = session || mockSession;
+  if (loading) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)' }}>Loading...</div>;
+  }
+
+  if (!session) {
+    return <Auth onLogin={() => {}} />;
+  }
 
   return (
     <Router>
       <div style={{ minHeight: '100vh', position: 'relative' }}>
         <Routes>
-          <Route path="/" element={<Home session={currentSession} />} />
-          <Route path="/routines" element={<Routines session={currentSession} />} />
-          <Route path="/notes" element={<Notes session={currentSession} />} />
-          <Route path="/analytics" element={<Analytics session={currentSession} />} />
-          <Route path="/settings" element={<Settings session={currentSession} />} />
+          <Route path="/" element={<Home session={session} />} />
+          <Route path="/routines" element={<Routines session={session} />} />
+          <Route path="/notes" element={<Notes session={session} />} />
+          <Route path="/analytics" element={<Analytics session={session} />} />
+          <Route path="/settings" element={<Settings session={session} />} />
         </Routes>
         <BottomNav />
       </div>

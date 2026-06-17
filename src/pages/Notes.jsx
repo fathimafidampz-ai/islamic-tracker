@@ -18,7 +18,9 @@ const Notes = ({ session }) => {
   }, []);
 
   const fetchNotes = async () => {
-    const cachedStr = localStorage.getItem('noor_notes_cache');
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';
+    const cachedStr = localStorage.getItem(cacheKey);
     const cachedNotes = cachedStr ? JSON.parse(cachedStr) : [];
 
     try {
@@ -31,7 +33,7 @@ const Notes = ({ session }) => {
           
         if (error) throw error;
         setNotes(data || []);
-        localStorage.setItem('noor_notes_cache', JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       } else {
         setNotes(cachedNotes.sort((a,b) => b.is_pinned - a.is_pinned));
       }
@@ -83,7 +85,9 @@ const Notes = ({ session }) => {
     }
 
     setNotes(updatedNotes.sort((a,b) => b.is_pinned - a.is_pinned));
-    localStorage.setItem('noor_notes_cache', JSON.stringify(updatedNotes));
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';
+    localStorage.setItem(cacheKey, JSON.stringify(updatedNotes));
     
     setIsCreating(false);
 
@@ -107,7 +111,9 @@ const Notes = ({ session }) => {
     const newVal = !currentVal;
     const updated = notes.map(n => n.id === id ? { ...n, is_pinned: newVal } : n).sort((a,b) => b.is_pinned - a.is_pinned);
     setNotes(updated);
-    localStorage.setItem('noor_notes_cache', JSON.stringify(updated));
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';
+    localStorage.setItem(cacheKey, JSON.stringify(updated));
     
     if (session?.user?.id && session.user.id !== '00000000-0000-0000-0000-000000000000') {
       try {
@@ -120,7 +126,9 @@ const Notes = ({ session }) => {
     if (!window.confirm('Delete this note?')) return;
     const updated = notes.filter(n => n.id !== id);
     setNotes(updated);
-    localStorage.setItem('noor_notes_cache', JSON.stringify(updated));
+    const userId = session?.user?.id;
+    const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';
+    localStorage.setItem(cacheKey, JSON.stringify(updated));
     
     if (session?.user?.id && session.user.id !== '00000000-0000-0000-0000-000000000000') {
       try {

@@ -38,12 +38,14 @@ const Analytics = ({ session }) => {
   }, [triggerRender]);
 
   const fetchAnalytics = async () => {
+    const userId = session?.user?.id;
+    const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
     try {
       let earliestDate = new Date();
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('worship_cache_')) {
-          const dateStr = key.replace('worship_cache_', '');
+        if (key && key.startsWith(prefix)) {
+          const dateStr = key.replace(prefix, '');
           const d = parseISO(dateStr);
           if (!isNaN(d) && d < earliestDate) {
             earliestDate = d;
@@ -51,7 +53,7 @@ const Analytics = ({ session }) => {
         }
       }
 
-      const daysDiff = Math.max(7, differenceInDays(new Date(), earliestDate) + 1);
+      const daysDiff = differenceInDays(new Date(), earliestDate) + 1;
       const allDays = Array.from({ length: daysDiff }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd')).reverse();
       
       let currentStreak = 0;
@@ -59,7 +61,8 @@ const Analytics = ({ session }) => {
       let scoreSum = 0;
 
       const chartData = allDays.map(dateStr => {
-        const localCacheStr = localStorage.getItem(`worship_cache_${dateStr}`);
+        const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
+        const localCacheStr = localStorage.getItem(localCacheKey);
         const localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
         
         const dayDate = parseISO(dateStr);
@@ -93,7 +96,7 @@ const Analytics = ({ session }) => {
         scoreSum += score;
 
         return {
-          name: format(dayDate, 'EEE'),
+          name: format(dayDate, 'EEE, d'),
           score: score,
           fullDate: dateStr,
           tasks: enhancedTasks,
@@ -132,7 +135,9 @@ const Analytics = ({ session }) => {
   const toggleTaskHistory = (taskId, currentlyCompleted) => {
     if (!detailedDay) return;
     const dateStr = detailedDay.fullDate;
-    const localCacheStr = localStorage.getItem(`worship_cache_${dateStr}`);
+    const userId = session?.user?.id;
+    const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
+    const localCacheStr = localStorage.getItem(localCacheKey);
     const localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
 
     if (currentlyCompleted) {
@@ -141,7 +146,7 @@ const Analytics = ({ session }) => {
       localCache[taskId] = { is_completed: true, count_reached: 0 };
     }
 
-    localStorage.setItem(`worship_cache_${dateStr}`, JSON.stringify(localCache));
+    localStorage.setItem(localCacheKey, JSON.stringify(localCache));
     setTriggerRender(prev => prev + 1); // Trigger full recalculation
   };
 
@@ -182,7 +187,7 @@ const Analytics = ({ session }) => {
               <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
+                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
                 <Tooltip 
                   contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'white' }} 
                   formatter={(value) => [`${value}%`, 'Average Score']}
