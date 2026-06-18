@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
+import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon, AlertCircle, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from './lib/supabase';
 import Auth from './pages/Auth';
@@ -11,6 +11,7 @@ import Routines from './pages/Routines';
 import Notes from './pages/Notes';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Admin from './pages/Admin';
 
 const BottomNav = ({ session }) => {
   const location = useLocation();
@@ -25,6 +26,10 @@ const BottomNav = ({ session }) => {
     { path: '/analytics', icon: PieChart, label: 'Analytics' },
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
+
+  if (session?.user?.email === 'fathimafidampz@gmail.com') {
+    navItems.push({ path: '/admin', icon: Shield, label: 'Admin' });
+  }
 
   const checkIncompleteDikrs = () => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -157,6 +162,7 @@ function App() {
           <Route path="/notes" element={<Notes session={session} />} />
           <Route path="/analytics" element={<Analytics session={session} />} />
           <Route path="/settings" element={<Settings session={session} />} />
+          <Route path="/admin" element={<Admin session={session} />} />
         </Routes>
         <BottomNav session={session} />
       </div>
