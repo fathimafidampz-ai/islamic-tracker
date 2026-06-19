@@ -116,16 +116,23 @@ const Home = ({ session }) => {
 
     // Try DB Update
     if (task.worship_record_id) {
-      await supabase.from('task_completions').upsert({
-        worship_record_id: task.worship_record_id,
-        task_id: task.id,
-        is_completed: newVal,
-        count_reached: currentCount,
-        completed_at: newVal ? new Date().toISOString() : null
-      }, { onConflict: 'worship_record_id, task_id' }).catch(err => {
-        console.error("UPSERT ERROR:", err);
-        alert("DB Error: " + err.message);
-      });
+      if (newVal) {
+        await supabase.from('task_completions').upsert({
+          worship_record_id: task.worship_record_id,
+          task_id: task.id,
+          is_completed: newVal,
+          count_reached: currentCount,
+          completed_at: new Date().toISOString()
+        }, { onConflict: 'worship_record_id, task_id' }).catch(err => {
+          console.error("UPSERT ERROR:", err);
+          alert("DB Error: " + err.message);
+        });
+      } else {
+        await supabase.from('task_completions').delete()
+          .eq('worship_record_id', task.worship_record_id)
+          .eq('task_id', task.id)
+          .catch(err => console.error("DELETE ERROR:", err));
+      }
     }
   };
 
@@ -160,12 +167,19 @@ const Home = ({ session }) => {
 
     // Try DB Update
     if (activeTask.worship_record_id) {
-      supabase.from('task_completions').upsert({
-        worship_record_id: activeTask.worship_record_id,
-        task_id: activeTask.id,
-        count_reached: newCount,
-        is_completed: existingEntry.is_completed // Preserve existing completion status
-      }, { onConflict: 'worship_record_id, task_id' }).catch(() => {});
+      if (newCount === 0 && !existingEntry.is_completed) {
+        supabase.from('task_completions').delete()
+          .eq('worship_record_id', activeTask.worship_record_id)
+          .eq('task_id', activeTask.id)
+          .catch(() => {});
+      } else {
+        supabase.from('task_completions').upsert({
+          worship_record_id: activeTask.worship_record_id,
+          task_id: activeTask.id,
+          count_reached: newCount,
+          is_completed: existingEntry.is_completed // Preserve existing completion status
+        }, { onConflict: 'worship_record_id, task_id' }).catch(() => {});
+      }
     }
   };
 
