@@ -32,6 +32,9 @@ const Analytics = ({ session }) => {
   const [detailedDay, setDetailedDay] = useState(null); // Full day object for the detailed checklist modal
   const [triggerRender, setTriggerRender] = useState(0); 
   const [visibleCount, setVisibleCount] = useState(10);
+  const [isOffline, setIsOffline] = useState(() => {
+    return !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+  });
 
   useEffect(() => {
     fetchAnalytics();
@@ -157,8 +160,10 @@ const Analytics = ({ session }) => {
         if (updatedDay) setDetailedDay(updatedDay);
       }
 
+      setIsOffline(false);
     } catch (err) {
       console.error("Error fetching analytics:", err);
+      setIsOffline(true);
     } finally {
       setLoading(false);
     }
@@ -216,6 +221,24 @@ const Analytics = ({ session }) => {
 
   return (
     <div className="page-container animate-in">
+      {isOffline && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: '#fca5a5',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          fontSize: '0.85rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <strong>⚠️ Disconnected from Database (Offline Mode)</strong>
+          <span>Your history and analytics cannot be loaded from the cloud. Please check your internet connection or verify your Vercel Environment Variables.</span>
+        </div>
+      )}
+
       <header style={{ marginBottom: '30px' }}>
         <h1 style={{ fontSize: '2rem' }}>Analytics</h1>
         <p style={{ color: 'var(--text-muted)' }}>Track your consistency</p>

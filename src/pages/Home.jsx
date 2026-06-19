@@ -9,14 +9,15 @@ const Home = ({ session }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [isOffline, setIsOffline] = useState(() => {
+    return !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
+  });
 
   // Modal State
   const [activeTask, setActiveTask] = useState(null);
   const [counterValue, setCounterValue] = useState(0);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-
 
   // Auto-complete counter when target is reached
   useEffect(() => {
@@ -37,7 +38,7 @@ const Home = ({ session }) => {
     const cachedDataStr = localStorage.getItem(localCacheKey);
     let cachedData = cachedDataStr ? JSON.parse(cachedDataStr) : {};
 
-    if (!userId) {
+    if (!userId || isOffline) {
       // If no user, just use local storage
       const fallbackTasks = generatedTasks.map(task => ({
         ...task,
@@ -51,14 +52,17 @@ const Home = ({ session }) => {
     }
 
     try {
-      let { data: record } = await supabase.from('worship_records').select('*').eq('user_id', userId).eq('record_date', todayStr).maybeSingle();
+      let { data: record, error: selectError } = await supabase.from('worship_records').select('*').eq('user_id', userId).eq('record_date', todayStr).maybeSingle();
+      if (selectError) throw selectError;
 
       if (!record) {
-        const { data: newRecord } = await supabase.from('worship_records').insert({ user_id: userId, record_date: todayStr }).select().single();
+        const { data: newRecord, error: insertError } = await supabase.from('worship_records').insert({ user_id: userId, record_date: todayStr }).select().single();
+        if (insertError) throw insertError;
         record = newRecord;
       }
 
-      const { data: completions } = await supabase.from('task_completions').select('*').eq('worship_record_id', record.id);
+      const { data: completions, error: compError } = await supabase.from('task_completions').select('*').eq('worship_record_id', record.id);
+      if (compError) throw compError;
 
       const merged = generatedTasks.map(task => {
         const dbState = completions?.find(c => c.task_id === task.id);
@@ -75,8 +79,10 @@ const Home = ({ session }) => {
 
       setTasks(merged);
       calculateProgress(merged);
+      setIsOffline(false);
     } catch (err) {
       console.error("DB Error:", err);
+      setIsOffline(true);
       // Fallback heavily to local storage if DB fails due to mock auth
       const fallbackTasks = generatedTasks.map(task => ({
         ...task,
@@ -222,6 +228,24 @@ const Home = ({ session }) => {
 
   return (
     <div className="page-container animate-in">
+      {isOffline && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: '#fca5a5',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          fontSize: '0.85rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <strong>⚠️ Disconnected from Database (Offline Mode)</strong>
+          <span>Your progress is saved locally, but cloud sync and Analytics are unavailable. Please check your internet connection or Vercel Environment Variables.</span>
+        </div>
+      )}
+
       <header style={{ marginBottom: '30px' }}>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{format(new Date(), 'EEEE, dd MMMM')}</p>
         <h1 style={{ fontSize: '2rem', marginTop: '4px' }}>Today's Worship</h1>

@@ -73,23 +73,28 @@ import { supabase } from './supabase';
 export const syncOfflineData = async (userId) => {
   if (!userId) return;
   
-  // 1. Migrate unauthenticated keys to authenticated keys
+  const prefix = `worship_cache_${userId}_`;
+  
+  // Clone keys first so we don't index-shift while mutating localStorage
+  const keys = [];
   for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('worship_cache_') && !key.includes('-') === false) {
+    keys.push(localStorage.key(i));
+  }
+  
+  // 1. Migrate unauthenticated keys to authenticated keys
+  for (const key of keys) {
+    if (key && key.startsWith('worship_cache_') && !key.startsWith(prefix)) {
       const datePart = key.replace('worship_cache_', '');
       if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
         const val = localStorage.getItem(key);
-        localStorage.setItem(`worship_cache_${userId}_${datePart}`, val);
+        localStorage.setItem(`${prefix}${datePart}`, val);
         localStorage.removeItem(key);
       }
     }
   }
 
   // 2. Sync all authenticated keys to Supabase
-  const prefix = `worship_cache_${userId}_`;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+  for (const key of keys) {
     if (key && key.startsWith(prefix)) {
       const dateStr = key.replace(prefix, '');
       const cachedDataStr = localStorage.getItem(key);
