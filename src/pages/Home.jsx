@@ -363,23 +363,69 @@ const Home = ({ session }) => {
 
             {/* CONTENT UI */}
             {activeTask.type === 'content' && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, borderRadius: '16px', overflow: 'hidden', background: '#111', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ 
+                  flex: 1, 
+                  borderRadius: '24px', 
+                  background: 'var(--bg-card)', 
+                  border: '1px solid var(--glass-border)',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  padding: '40px 24px',
+                  textAlign: 'center',
+                  marginBottom: '24px'
+                }}>
                   {activeTask.contentUrl.endsWith('.pdf') ? (
-                    <iframe 
-                      src={activeTask.contentUrl} 
-                      title={activeTask.title} 
-                      style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} 
-                    />
+                    <>
+                      <div style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        borderRadius: '50%', 
+                        background: 'rgba(59, 130, 246, 0.1)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        marginBottom: '24px',
+                        color: 'var(--primary)'
+                      }}>
+                        {/* BookOpen Icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      </div>
+                      <h3 style={{ fontSize: '1.4rem', marginBottom: '8px', color: 'var(--text-main)' }}>Read {activeTask.title}</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '32px', maxWidth: '300px', lineHeight: '1.5' }}>
+                        Open the Surah PDF in a new tab to read it with zoom and search support.
+                      </p>
+                      <button 
+                        className="btn-primary" 
+                        style={{ 
+                          background: 'var(--text-main)', 
+                          color: 'var(--bg-darker)',
+                          boxShadow: 'none',
+                          padding: '12px 28px',
+                          borderRadius: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontWeight: '600'
+                        }} 
+                        onClick={() => window.open(activeTask.contentUrl, '_blank')}
+                      >
+                        Open PDF Document
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      </button>
+                    </>
                   ) : (
                     <img 
                       src={activeTask.contentUrl} 
                       alt={activeTask.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px' }} 
                     />
                   )}
                 </div>
-                <button className="btn-primary" style={{ marginTop: '24px' }} onClick={submitModalTask}>
+                
+                <button className="btn-primary" style={{ width: '100%', padding: '16px' }} onClick={submitModalTask}>
                   Mark as Read & Completed
                 </button>
               </div>
