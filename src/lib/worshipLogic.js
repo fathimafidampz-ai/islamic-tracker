@@ -67,3 +67,64 @@ export const generateDailyTasks = () => {
 
   return tasks;
 };
+
+import { supabase } from './supabase';
+
+export const syncOfflineData = async (userId) => {
+  if (!userId) return;
+  
+  // 1. Migrate unauthenticated keys to authenticated keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('worship_cache_') && !key.includes('-') === false) {
+      const datePart = key.replace('worship_cache_', '');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        const val = localStorage.getItem(key);
+        localStorage.setItem(`worship_cache_${userId}_${datePart}`, val);
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+  // 2. Sync all authenticated keys to Supabase
+  const prefix = `worship_cache_${userId}_`;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(prefix)) {
+      const dateStr = key.replace(prefix, '');
+      const cachedDataStr = localStorage.getItem(key);
+      if (!cachedDataStr) continue;
+      const cachedData = JSON.parse(cachedDataStr);
+
+      try {
+        let { data: record } = await supabase.from('worship_records').select('*').eq('user_id', userId).eq('record_date', dateStr).maybeSingle();
+        if (!record) {
+          const { data: newRecord } = await supabase.from('worship_records').insert({ user_id: userId, record_date: dateStr }).select().single();
+          if (!newRecord) continue;
+          record = newRecord;
+        }
+
+        const { data: completions } = await supabase.from('task_completions').select('*').eq('worship_record_id', record.id);
+
+        const tasksToSync = Object.entries(cachedData).map(([taskId, val]) => {
+          if (val.is_completed || val.count_reached > 0) {
+            return {
+              worship_record_id: record.id,
+              task_id: taskId,
+              is_completed: val.is_completed || false,
+              count_reached: val.count_reached || 0,
+              completed_at: val.is_completed ? new Date().toISOString() : null
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        if (tasksToSync.length > 0) {
+          await supabase.from('task_completions').upsert(tasksToSync, { onConflict: 'worship_record_id, task_id' });
+        }
+      } catch (err) {
+        console.error("Sync error for date", dateStr, err);
+      }
+    }
+  }
+};

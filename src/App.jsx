@@ -119,6 +119,8 @@ const BottomNav = ({ session }) => {
   );
 };
 
+import { syncOfflineData } from './lib/worshipLogic';
+
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -131,15 +133,22 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
-      if (session) startNotificationService(session);
+      if (session) {
+        startNotificationService(session);
+        syncOfflineData(session.user.id);
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) startNotificationService(session);
-      else stopNotificationService();
+      if (session) {
+        startNotificationService(session);
+        syncOfflineData(session.user.id);
+      } else {
+        stopNotificationService();
+      }
     });
 
     return () => subscription.unsubscribe();

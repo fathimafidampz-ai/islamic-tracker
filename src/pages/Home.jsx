@@ -122,7 +122,10 @@ const Home = ({ session }) => {
         is_completed: newVal,
         count_reached: currentCount,
         completed_at: newVal ? new Date().toISOString() : null
-      }, { onConflict: 'worship_record_id, task_id' }).catch(console.error);
+      }, { onConflict: 'worship_record_id, task_id' }).catch(err => {
+        console.error("UPSERT ERROR:", err);
+        alert("DB Error: " + err.message);
+      });
     }
   };
 

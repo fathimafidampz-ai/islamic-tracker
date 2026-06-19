@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Shield, User as UserIcon, ChevronLeft, ListPlus, X, CheckCircle2, Circle } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +17,26 @@ const Admin = ({ session }) => {
   useEffect(() => {
     if (session?.user?.email === 'fathimafidampz@gmail.com') {
       fetchAdminData();
+
+      // Fallback polling every 3 seconds in case Supabase Realtime RLS blocks events
+      const pollInterval = setInterval(() => {
+        fetchAdminData();
+      }, 3000);
+
+      // Realtime listener for immediate updates when a user clicks a task
+      const subscription = supabase.channel('admin_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'task_completions' }, () => {
+          fetchAdminData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'worship_records' }, () => {
+          fetchAdminData();
+        })
+        .subscribe();
+
+      return () => {
+        clearInterval(pollInterval);
+        supabase.removeChannel(subscription);
+      };
     } else {
       setError('You are not authorized to view this page.');
       setLoading(false);
@@ -54,6 +74,20 @@ const Admin = ({ session }) => {
     acc[row.user_email].push(row);
     return acc;
   }, {});
+
+  // Keep the detailed modal completely up-to-date with realtime changes
+  useEffect(() => {
+    if (detailedDay && activeUser) {
+      const records = groupedData[activeUser] || [];
+      const updatedRecord = records.find(r => r.record_date === detailedDay.record_date);
+      if (updatedRecord) {
+        // Only update if the tasks changed
+        if (JSON.stringify(updatedRecord.completed_task_ids) !== JSON.stringify(detailedDay.completed_task_ids)) {
+          setDetailedDay({ ...detailedDay, completed_tasks: updatedRecord.completed_tasks, completed_task_ids: updatedRecord.completed_task_ids });
+        }
+      }
+    }
+  }, [userData]);
 
   // Generate full task dictionary and categories once
   const allTasksTemplate = generateDailyTasks();
@@ -108,7 +142,6 @@ const Admin = ({ session }) => {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-main)' }}>{totalLifetimeTasks} Tasks</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Active {format(new Date(latestRecord.record_date), 'MMM d')}</div>
                 </div>
               </div>
@@ -120,7 +153,30 @@ const Admin = ({ session }) => {
   );
 
   const renderUserHistory = () => {
-    const records = groupedData[activeUser] || [];
+    const dbRecords = groupedData[activeUser] || [];
+    const totalPossibleTasks = allTasksTemplate.length;
+
+    // Fill missing days using eachDayOfInterval
+    const sortedRecords = [...dbRecords].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
+    const firstRecord = sortedRecords.length > 0 ? sortedRecords[0] : null;
+
+    let fullHistory = [];
+    if (firstRecord) {
+      const startDate = parseISO(firstRecord.record_date);
+      const endDate = new Date();
+      
+      const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
+      
+      fullHistory = dateRange.map(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const record = dbRecords.find(r => r.record_date === dateStr);
+        return {
+          record_date: dateStr,
+          completed_tasks: record ? record.completed_tasks : 0,
+          completed_task_ids: record ? (record.completed_task_ids || []) : []
+        };
+      }).reverse();
+    }
     
     return (
       <div className="animate-in" style={{ paddingBottom: '100px' }}>
@@ -138,13 +194,13 @@ const Admin = ({ session }) => {
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {records.map(record => {
-            const dailyScore = record.total_tasks > 0 ? Math.round((record.completed_tasks / record.total_tasks) * 100) : 0;
+          {fullHistory.map(record => {
+            const dailyScore = Math.round((record.completed_tasks / totalPossibleTasks) * 100);
             return (
               <div key={record.record_date} className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(new Date(record.record_date), 'EEEE, MMM do')}</h3>
-                  <span style={{ color: dailyScore >= 50 ? '#10b981' : 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{dailyScore}% Total</span>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(parseISO(record.record_date), 'EEEE, MMM do')}</h3>
+                  <span style={{ color: dailyScore >= 50 ? '#10b981' : (dailyScore === 0 ? 'var(--text-muted)' : 'var(--primary)'), fontWeight: 'bold', fontSize: '1.1rem' }}>{dailyScore}% Total</span>
                 </div>
                 <button 
                   className="btn-primary" 
@@ -168,8 +224,8 @@ const Admin = ({ session }) => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(new Date(detailedDay.record_date), 'EEEE, MMM do')}</h2>
-                  <p style={{ color: 'var(--text-muted)' }}>{detailedDay.completed_tasks}/{detailedDay.total_tasks} Tasks Completed</p>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseISO(detailedDay.record_date), 'EEEE, MMM do')}</h2>
+                  <p style={{ color: 'var(--text-muted)' }}>{detailedDay.completed_tasks}/{totalPossibleTasks} Tasks Completed</p>
                 </div>
                 <button onClick={() => setDetailedDay(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <X size={24}/>
