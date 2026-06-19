@@ -42,6 +42,29 @@ const Analytics = ({ session }) => {
     const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
     try {
       let earliestDate = new Date();
+      let dbRecords = [];
+      let dbCompletions = [];
+
+      // 1. Fetch from Database if logged in
+      if (userId) {
+        const { data: rData } = await supabase.from('worship_records').select('*').eq('user_id', userId);
+        if (rData && rData.length > 0) {
+          dbRecords = rData;
+          const recordIds = rData.map(r => r.id);
+          
+          // Fetch completions in batches if necessary, but usually it's fine for small/medium datasets
+          const { data: cData } = await supabase.from('task_completions').select('*').in('worship_record_id', recordIds);
+          dbCompletions = cData || [];
+          
+          // Update earliest date based on DB
+          rData.forEach(r => {
+            const d = parseISO(r.record_date);
+            if (!isNaN(d) && d < earliestDate) earliestDate = d;
+          });
+        }
+      }
+
+      // 2. Also check local storage for earliest date (in case they have offline unsynced data)
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(prefix)) {
@@ -61,10 +84,24 @@ const Analytics = ({ session }) => {
       let scoreSum = 0;
 
       const chartData = allDays.map(dateStr => {
+        // Build DB Cache for this specific day
+        const dayDbCache = {};
+        const dbRecordForDay = dbRecords.find(r => r.record_date === dateStr);
+        if (dbRecordForDay) {
+          const completionsForDay = dbCompletions.filter(c => c.worship_record_id === dbRecordForDay.id);
+          completionsForDay.forEach(c => {
+            dayDbCache[c.task_id] = { is_completed: c.is_completed, count_reached: c.count_reached };
+          });
+        }
+
+        // Get Local Cache for this specific day
         const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
         const localCacheStr = localStorage.getItem(localCacheKey);
         const localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
         
+        // Merge them (Local cache overrides DB in case of offline edits, though sync usually handles this)
+        const mergedCache = { ...dayDbCache, ...localCache };
+
         const dayDate = parseISO(dateStr);
         const dayTasksRaw = generateDailyTasks(dayDate);
         
@@ -73,7 +110,7 @@ const Analytics = ({ session }) => {
         const categoryBreakdown = {};
         
         const enhancedTasks = dayTasksRaw.map(task => {
-          const isCompleted = !!localCache[task.id]?.is_completed;
+          const isCompleted = !!mergedCache[task.id]?.is_completed;
           
           if (!categoryBreakdown[task.category]) {
             categoryBreakdown[task.category] = { total: 0, completed: 0 };
@@ -102,7 +139,8 @@ const Analytics = ({ session }) => {
           tasks: enhancedTasks,
           categoryBreakdown,
           completedCount,
-          totalTaskCount
+          totalTaskCount,
+          worship_record_id: dbRecordForDay ? dbRecordForDay.id : null // Store for potential DB updates via modal
         };
       });
 
@@ -120,7 +158,7 @@ const Analytics = ({ session }) => {
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching analytics:", err);
     } finally {
       setLoading(false);
     }
@@ -132,7 +170,7 @@ const Analytics = ({ session }) => {
     }
   };
 
-  const toggleTaskHistory = (taskId, currentlyCompleted) => {
+  const toggleTaskHistory = async (taskId, currentlyCompleted) => {
     if (!detailedDay) return;
     const dateStr = detailedDay.fullDate;
     const userId = session?.user?.id;
@@ -140,13 +178,39 @@ const Analytics = ({ session }) => {
     const localCacheStr = localStorage.getItem(localCacheKey);
     const localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
 
+    // 1. Update Local Storage
     if (currentlyCompleted) {
       delete localCache[taskId];
     } else {
       localCache[taskId] = { is_completed: true, count_reached: 0 };
     }
-
     localStorage.setItem(localCacheKey, JSON.stringify(localCache));
+
+    // 2. Update Database if record exists
+    if (userId) {
+      let recordId = detailedDay.worship_record_id;
+      
+      // If no record exists for this past day, create one
+      if (!recordId) {
+        const { data: newRecord } = await supabase.from('worship_records').insert({ user_id: userId, record_date: dateStr }).select().single();
+        if (newRecord) recordId = newRecord.id;
+      }
+
+      if (recordId) {
+        if (currentlyCompleted) {
+          await supabase.from('task_completions').delete().eq('worship_record_id', recordId).eq('task_id', taskId);
+        } else {
+          await supabase.from('task_completions').upsert({
+            worship_record_id: recordId,
+            task_id: taskId,
+            is_completed: true,
+            count_reached: 0,
+            completed_at: new Date().toISOString()
+          }, { onConflict: 'worship_record_id, task_id' });
+        }
+      }
+    }
+
     setTriggerRender(prev => prev + 1); // Trigger full recalculation
   };
 
