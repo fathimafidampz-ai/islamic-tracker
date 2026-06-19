@@ -31,6 +31,9 @@ const Admin = ({ session }) => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'worship_records' }, () => {
           fetchAdminData();
         })
+        .on('broadcast', { event: 'task_update' }, () => {
+          fetchAdminData();
+        })
         .subscribe();
 
       return () => {

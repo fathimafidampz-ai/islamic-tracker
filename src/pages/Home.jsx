@@ -98,6 +98,19 @@ const Home = ({ session }) => {
     setProgress(total === 0 ? 0 : Math.round((completed / total) * 100));
   };
 
+  const broadcastUpdate = () => {
+    const channel = supabase.channel('admin_realtime');
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        channel.send({
+          type: 'broadcast',
+          event: 'task_update',
+          payload: {}
+        }).then(() => supabase.removeChannel(channel));
+      }
+    });
+  };
+
   const toggleTask = async (task, forcedValue = null) => {
     const newVal = forcedValue !== null ? forcedValue : !task.is_completed;
     const currentCount = task.type === 'counter' ? (forcedValue ? task.target : 0) : 0;
@@ -133,6 +146,7 @@ const Home = ({ session }) => {
           .eq('task_id', task.id)
           .catch(err => console.error("DELETE ERROR:", err));
       }
+      broadcastUpdate();
     }
   };
 
@@ -180,6 +194,7 @@ const Home = ({ session }) => {
           is_completed: existingEntry.is_completed // Preserve existing completion status
         }, { onConflict: 'worship_record_id, task_id' }).catch(() => {});
       }
+      broadcastUpdate();
     }
   };
 
