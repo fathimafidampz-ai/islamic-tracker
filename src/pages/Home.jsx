@@ -16,9 +16,7 @@ const Home = ({ session }) => {
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-  useEffect(() => {
-    fetchTodayData();
-  }, []);
+
 
   // Auto-complete counter when target is reached
   useEffect(() => {
@@ -98,17 +96,28 @@ const Home = ({ session }) => {
     setProgress(total === 0 ? 0 : Math.round((completed / total) * 100));
   };
 
-  const broadcastUpdate = () => {
+  // Initialize a broadcast channel
+  const [broadcastChannel, setBroadcastChannel] = useState(null);
+
+  useEffect(() => {
+    fetchTodayData();
     const channel = supabase.channel('admin_realtime');
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        channel.send({
-          type: 'broadcast',
-          event: 'task_update',
-          payload: {}
-        }).then(() => supabase.removeChannel(channel));
-      }
-    });
+    channel.subscribe();
+    setBroadcastChannel(channel);
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const broadcastUpdate = () => {
+    if (broadcastChannel) {
+      broadcastChannel.send({
+        type: 'broadcast',
+        event: 'task_update',
+        payload: {}
+      }).catch(console.error);
+    }
   };
 
   const toggleTask = async (task, forcedValue = null) => {

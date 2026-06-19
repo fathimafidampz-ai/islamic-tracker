@@ -88,6 +88,11 @@ const Admin = ({ session }) => {
         if (JSON.stringify(updatedRecord.completed_task_ids) !== JSON.stringify(detailedDay.completed_task_ids)) {
           setDetailedDay({ ...detailedDay, completed_tasks: updatedRecord.completed_tasks, completed_task_ids: updatedRecord.completed_task_ids });
         }
+      } else {
+        // If the record no longer exists in dbRecords, it means 0 tasks are completed for this day.
+        if (detailedDay.completed_tasks > 0) {
+          setDetailedDay({ ...detailedDay, completed_tasks: 0, completed_task_ids: [] });
+        }
       }
     }
   }, [userData]);
