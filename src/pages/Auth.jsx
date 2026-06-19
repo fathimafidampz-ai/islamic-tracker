@@ -60,8 +60,8 @@ const Auth = ({ onLogin }) => {
             required
             style={{
               width: '100%', padding: '16px 16px 16px 48px',
-              background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
-              borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none',
+              background: 'var(--bg-dark)', border: '1px solid var(--glass-border)',
+              borderRadius: '12px', color: 'var(--text-main)', fontSize: '1rem', outline: 'none',
               transition: 'border-color 0.2s ease'
             }}
           />
@@ -77,8 +77,8 @@ const Auth = ({ onLogin }) => {
             required
             style={{
               width: '100%', padding: '16px 16px 16px 48px',
-              background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
-              borderRadius: '12px', color: 'white', fontSize: '1rem', outline: 'none',
+              background: 'var(--bg-dark)', border: '1px solid var(--glass-border)',
+              borderRadius: '12px', color: 'var(--text-main)', fontSize: '1rem', outline: 'none',
               transition: 'border-color 0.2s ease'
             }}
           />
