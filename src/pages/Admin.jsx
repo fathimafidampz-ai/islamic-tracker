@@ -165,7 +165,6 @@ const Admin = ({ session }) => {
 
   const renderUserHistory = () => {
     const dbRecords = groupedData[activeUser] || [];
-    const totalPossibleTasks = allTasksTemplate.length;
 
     // Fill missing days using eachDayOfInterval
     const sortedRecords = [...dbRecords].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
@@ -181,10 +180,13 @@ const Admin = ({ session }) => {
       fullHistory = dateRange.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const record = dbRecords.find(r => r.record_date === dateStr);
+        const dayTasks = generateDailyTasks(date);
         return {
           record_date: dateStr,
           completed_tasks: record ? record.completed_tasks : 0,
-          completed_task_ids: record ? (record.completed_task_ids || []) : []
+          completed_task_ids: record ? (record.completed_task_ids || []) : [],
+          total_tasks: dayTasks.length,
+          dayTasks
         };
       }).reverse();
     }
@@ -206,7 +208,7 @@ const Admin = ({ session }) => {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {fullHistory.map(record => {
-            const dailyScore = Math.round((record.completed_tasks / totalPossibleTasks) * 100);
+            const dailyScore = record.total_tasks === 0 ? 0 : Math.round((record.completed_tasks / record.total_tasks) * 100);
             return (
               <div key={record.record_date} className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -236,7 +238,7 @@ const Admin = ({ session }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseISO(detailedDay.record_date), 'EEEE, MMM do')}</h2>
-                  <p style={{ color: 'var(--text-muted)' }}>{detailedDay.completed_tasks}/{totalPossibleTasks} Tasks Completed</p>
+                  <p style={{ color: 'var(--text-muted)' }}>{detailedDay.completed_tasks}/{detailedDay.total_tasks || 0} Tasks Completed</p>
                 </div>
                 <button onClick={() => setDetailedDay(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <X size={24}/>
@@ -245,7 +247,8 @@ const Admin = ({ session }) => {
 
               {(() => {
                 const completedIds = detailedDay.completed_task_ids || [];
-                const parsedTasks = allTasksTemplate.map(t => ({ ...t, isCompleted: completedIds.includes(t.id) }));
+                const dayTasks = detailedDay.dayTasks || [];
+                const parsedTasks = dayTasks.map(t => ({ ...t, isCompleted: completedIds.includes(t.id) }));
                 const missingTasks = parsedTasks.filter(t => !t.isCompleted);
                 const completedTasks = parsedTasks.filter(t => t.isCompleted);
 

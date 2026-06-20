@@ -1,7 +1,7 @@
 import { format, getDay } from 'date-fns';
 
-export const generateDailyTasks = () => {
-  const dayOfWeek = getDay(new Date()); // 0 = Sunday, 1 = Monday, etc.
+export const generateDailyTasks = (date = new Date()) => {
+  const dayOfWeek = getDay(date); // 0 = Sunday, 1 = Monday, etc.
   const isThursday = dayOfWeek === 4;
   const isFriday = dayOfWeek === 5;
 
