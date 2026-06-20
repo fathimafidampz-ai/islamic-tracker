@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Bell, Shield, Download, LogOut, ChevronRight, Moon } from 'lucide-react';
+import { User, Bell, Shield, Download, LogOut, ChevronRight, Moon, Send } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { parseISO, format, subDays, differenceInDays } from 'date-fns';
+import { sendNotification } from '../lib/notifications';
 
 const Settings = ({ session }) => {
   const user = session?.user;
@@ -25,16 +26,46 @@ const Settings = ({ session }) => {
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
-  const toggleNotifications = () => {
+  const toggleNotifications = async () => {
     const newVal = !notificationsEnabled;
-    setNotificationsEnabled(newVal);
-    localStorage.setItem('noor_notifications', newVal.toString());
     
-    if (newVal && 'Notification' in window) {
-      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        Notification.requestPermission();
+    if (newVal) {
+      if (!('Notification' in window)) {
+        alert('Notifications are not supported by this browser.');
+        return;
       }
+      
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        localStorage.setItem('noor_notifications', 'true');
+        sendNotification('Notifications Activated 🌙', {
+          body: 'Alhamdulillah, you will receive reminders for prayer times and daily recitations.'
+        });
+      } else {
+        alert('Notification permission denied. Please allow notifications in your browser/PWA settings.');
+        setNotificationsEnabled(false);
+        localStorage.setItem('noor_notifications', 'false');
+      }
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('noor_notifications', 'false');
     }
+  };
+
+  const sendTestNotification = () => {
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported by this browser.');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      alert(`Notification permission is currently "${Notification.permission}". Please toggle Notifications to request permission.`);
+      return;
+    }
+    
+    sendNotification('Test Notification 🌙', {
+      body: 'Alhamdulillah, your notifications are working perfectly! You will receive daily worship reminders here.'
+    });
   };
 
   const SettingRow = ({ icon: Icon, label, color, onClick }) => (
@@ -168,6 +199,12 @@ const Settings = ({ session }) => {
       <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', marginLeft: '4px' }}>Preferences</h3>
       <SettingRow icon={Moon} label={isDark ? "Appearance (Light Mode)" : "Appearance (Dark Mode)"} color="#8b5cf6" onClick={toggleTheme} />
       <SettingRow icon={Bell} label={notificationsEnabled ? "Notifications (Enabled)" : "Notifications (Muted)"} color="#f59e0b" onClick={toggleNotifications} />
+      {notificationsEnabled && (
+        <SettingRow icon={Send} label="Send Test Notification" color="#10b981" onClick={sendTestNotification} />
+      )}
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', padding: '0 8px', marginTop: '-4px', marginBottom: '16px', lineHeight: '1.4' }}>
+        * Note: For notifications to work on mobile, please ensure you have added Noor to your Home Screen. On iOS, notifications are only supported when running as an installed PWA.
+      </p>
       
       <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', marginLeft: '4px', marginTop: '24px' }}>Data & Privacy</h3>
       <SettingRow icon={Download} label="Export My Data" color="#3b82f6" onClick={handleExportData} />

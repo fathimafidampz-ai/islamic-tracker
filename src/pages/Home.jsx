@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { format } from 'date-fns';
-import { CheckCircle2, Circle, ChevronRight, X, RefreshCw, Plus } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronRight, X, RefreshCw, Plus, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sendNotification } from '../lib/notifications';
 
 const Home = ({ session }) => {
   const [tasks, setTasks] = useState([]);
@@ -16,6 +17,25 @@ const Home = ({ session }) => {
   // Modal State
   const [activeTask, setActiveTask] = useState(null);
   const [counterValue, setCounterValue] = useState(0);
+  const [showNotifBanner, setShowNotifBanner] = useState(() => {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return false;
+    return localStorage.getItem('noor_dismissed_notif_banner') !== 'true';
+  });
+
+  const requestNotifPermission = async () => {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      localStorage.setItem('noor_notifications', 'true');
+      sendNotification('Notifications Activated 🌙', {
+        body: 'Alhamdulillah, you will receive reminders for prayer times and daily recitations.'
+      });
+    } else {
+      localStorage.setItem('noor_notifications', 'false');
+    }
+    setShowNotifBanner(false);
+  };
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -248,7 +268,47 @@ const Home = ({ session }) => {
           <span>Your progress is saved locally, but cloud sync and Analytics are unavailable. Please check your internet connection or Vercel Environment Variables.</span>
         </div>
       )}
-
+      {showNotifBanner && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.1)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          color: 'var(--text-main)',
+          padding: '16px',
+          borderRadius: '16px',
+          marginBottom: '20px',
+          fontSize: '0.9rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          position: 'relative'
+        }}>
+          <button 
+            onClick={() => {
+              localStorage.setItem('noor_dismissed_notif_banner', 'true');
+              setShowNotifBanner(false);
+            }} 
+            style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
+            <X size={16} />
+          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingRight: '20px' }}>
+            <Bell size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong style={{ display: 'block', marginBottom: '4px' }}>Enable Worship Reminders?</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: '1.4' }}>
+                Receive notifications for prayer times, Surah recitations, and Friday Jumuah prep.
+              </span>
+            </div>
+          </div>
+          <button 
+            className="btn-primary" 
+            style={{ padding: '10px 16px', fontSize: '0.85rem', alignSelf: 'flex-start', boxShadow: 'none' }}
+            onClick={requestNotifPermission}
+          >
+            Enable Notifications
+          </button>
+        </div>
+      )}
       <header style={{ marginBottom: '30px' }}>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{format(new Date(), 'EEEE, dd MMMM')}</p>
         <h1 style={{ fontSize: '2rem', marginTop: '4px' }}>Today's Worship</h1>
