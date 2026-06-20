@@ -173,6 +173,9 @@ const Home = ({ session }) => {
 
     if (task.type === 'checkbox') {
       toggleTask(task);
+    } else if (task.type === 'content') {
+      window.open(task.contentUrl, '_blank');
+      toggleTask(task, true);
     } else {
       setActiveTask(task);
       setCounterValue(task.count_reached || 0);
