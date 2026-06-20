@@ -36,8 +36,27 @@ const Analytics = ({ session }) => {
     return !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
   });
 
+  // Broadcast channel
+  const [broadcastChannel, setBroadcastChannel] = useState(null);
+
   useEffect(() => {
     fetchAnalytics();
+
+    const channel = supabase.channel('admin_realtime', {
+      config: {
+        broadcast: { self: true }
+      }
+    })
+    .on('broadcast', { event: 'task_update' }, () => {
+      fetchAnalytics();
+    });
+
+    channel.subscribe();
+    setBroadcastChannel(channel);
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [triggerRender]);
 
   // Handle back button to close detailedDay modal
@@ -234,6 +253,14 @@ const Analytics = ({ session }) => {
           }, { onConflict: 'worship_record_id, task_id' });
         }
       }
+    }
+
+    if (broadcastChannel) {
+      broadcastChannel.send({
+        type: 'broadcast',
+        event: 'task_update',
+        payload: {}
+      }).catch(console.error);
     }
 
     setTriggerRender(prev => prev + 1); // Trigger full recalculation

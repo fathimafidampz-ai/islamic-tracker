@@ -130,12 +130,30 @@ function App() {
     const savedTheme = localStorage.getItem('noor_theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
+    const triggerSyncAndBroadcast = async (userId) => {
+      try {
+        await syncOfflineData(userId);
+        const channel = supabase.channel('admin_realtime');
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            channel.send({
+              type: 'broadcast',
+              event: 'task_update',
+              payload: {}
+            }).catch(console.error);
+          }
+        });
+      } catch (err) {
+        console.error("Sync and broadcast error:", err);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
       if (session) {
         startNotificationService(session);
-        syncOfflineData(session.user.id);
+        triggerSyncAndBroadcast(session.user.id);
       }
     });
 
@@ -145,7 +163,7 @@ function App() {
       setSession(session);
       if (session) {
         startNotificationService(session);
-        syncOfflineData(session.user.id);
+        triggerSyncAndBroadcast(session.user.id);
       } else {
         stopNotificationService();
       }

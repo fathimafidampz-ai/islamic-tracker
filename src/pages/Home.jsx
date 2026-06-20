@@ -147,7 +147,14 @@ const Home = ({ session }) => {
 
   useEffect(() => {
     fetchTodayData();
-    const channel = supabase.channel('admin_realtime');
+    const channel = supabase.channel('admin_realtime', {
+      config: {
+        broadcast: { self: true }
+      }
+    })
+    .on('broadcast', { event: 'task_update' }, () => {
+      fetchTodayData();
+    });
     channel.subscribe();
     setBroadcastChannel(channel);
 
@@ -183,10 +190,28 @@ const Home = ({ session }) => {
     localStorage.setItem(localCacheKey, JSON.stringify(existingCache));
 
     // Try DB Update
-    if (task.worship_record_id) {
+    let recordId = task.worship_record_id;
+    if (!recordId && userId && !isOffline) {
+      try {
+        let { data: record } = await supabase.from('worship_records').select('*').eq('user_id', userId).eq('record_date', todayStr).maybeSingle();
+        if (!record) {
+          const { data: newRecord } = await supabase.from('worship_records').insert({ user_id: userId, record_date: todayStr }).select().single();
+          record = newRecord;
+        }
+        if (record) {
+          recordId = record.id;
+          // Update tasks in local state with resolved record id
+          setTasks(prev => prev.map(t => ({ ...t, worship_record_id: record.id })));
+        }
+      } catch (e) {
+        console.error("Failed to dynamically create/fetch worship record:", e);
+      }
+    }
+
+    if (recordId) {
       if (newVal) {
         await supabase.from('task_completions').upsert({
-          worship_record_id: task.worship_record_id,
+          worship_record_id: recordId,
           task_id: task.id,
           is_completed: newVal,
           count_reached: currentCount,
@@ -197,7 +222,7 @@ const Home = ({ session }) => {
         });
       } else {
         await supabase.from('task_completions').delete()
-          .eq('worship_record_id', task.worship_record_id)
+          .eq('worship_record_id', recordId)
           .eq('task_id', task.id)
           .catch(err => console.error("DELETE ERROR:", err));
       }

@@ -24,7 +24,11 @@ const Admin = ({ session }) => {
       }, 3000);
 
       // Realtime listener for immediate updates when a user clicks a task
-      const subscription = supabase.channel('admin_realtime')
+      const subscription = supabase.channel('admin_realtime', {
+        config: {
+          broadcast: { self: true }
+        }
+      })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'task_completions' }, () => {
           fetchAdminData();
         })
@@ -122,12 +126,11 @@ const Admin = ({ session }) => {
         <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '40px' }}>Loading user data...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {Object.entries(groupedData).filter(([email]) => email !== 'fathimafidampz@gmail.com').length === 0 && !error && (
-            <p style={{ color: 'var(--text-muted)' }}>No other user data found.</p>
+          {Object.entries(groupedData).length === 0 && !error && (
+            <p style={{ color: 'var(--text-muted)' }}>No user data found.</p>
           )}
 
           {Object.entries(groupedData)
-            .filter(([email]) => email !== 'fathimafidampz@gmail.com')
             .map(([email, records]) => {
             records.sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
             const latestRecord = records[0];
