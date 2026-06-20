@@ -24,6 +24,12 @@ const CircularProgress = ({ progress, label }) => (
   </div>
 );
 
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const Analytics = ({ session }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +106,7 @@ const Analytics = ({ session }) => {
           
           // Update earliest date based on DB
           rData.forEach(r => {
-            const d = parseISO(r.record_date);
+            const d = parseLocalDate(r.record_date);
             if (!isNaN(d) && d < earliestDate) earliestDate = d;
           });
         }
@@ -111,7 +117,7 @@ const Analytics = ({ session }) => {
         const key = localStorage.key(i);
         if (key && key.startsWith(prefix)) {
           const dateStr = key.replace(prefix, '');
-          const d = parseISO(dateStr);
+          const d = parseLocalDate(dateStr);
           if (!isNaN(d) && d < earliestDate) {
             earliestDate = d;
           }
@@ -144,7 +150,7 @@ const Analytics = ({ session }) => {
         // Merge them (Local cache overrides DB in case of offline edits, though sync usually handles this)
         const mergedCache = { ...dayDbCache, ...localCache };
 
-        const dayDate = parseISO(dateStr);
+        const dayDate = parseLocalDate(dateStr);
         const dayTasksRaw = generateDailyTasks(dayDate);
         
         let completedCount = 0;
@@ -386,7 +392,7 @@ const Analytics = ({ session }) => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseISO(detailedDay.fullDate), 'EEEE, MMM do')}</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseLocalDate(detailedDay.fullDate), 'EEEE, MMM do')}</h2>
                 <p style={{ color: 'var(--text-muted)' }}>{detailedDay.score}% Completed • {detailedDay.completedCount}/{detailedDay.totalTaskCount} Tasks</p>
               </div>
               <button onClick={() => setDetailedDay(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

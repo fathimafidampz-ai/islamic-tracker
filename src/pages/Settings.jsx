@@ -7,6 +7,12 @@ import { generateDailyTasks } from '../lib/worshipLogic';
 import { parseISO, format, subDays, differenceInDays } from 'date-fns';
 import { sendNotification } from '../lib/notifications';
 
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const Settings = ({ session }) => {
   const user = session?.user;
   const [isDark, setIsDark] = useState(() => localStorage.getItem('noor_theme') === 'dark');
@@ -102,7 +108,7 @@ const Settings = ({ session }) => {
       const key = localStorage.key(i);
       if (key && key.startsWith(prefix)) {
         const dateStr = key.replace(prefix, '');
-        const d = parseISO(dateStr);
+        const d = parseLocalDate(dateStr);
         if (!isNaN(d) && d < earliestDate) {
           earliestDate = d;
         }
@@ -122,7 +128,7 @@ const Settings = ({ session }) => {
         localCache = JSON.parse(localStorage.getItem(localCacheKey)) || {};
       } catch (e) {}
       
-      const dayTasksRaw = generateDailyTasks(parseISO(dateStr));
+      const dayTasksRaw = generateDailyTasks(parseLocalDate(dateStr));
       
       let overallCompleted = 0;
       let overallTotal = dayTasksRaw.length;

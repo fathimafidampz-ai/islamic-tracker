@@ -5,6 +5,12 @@ import { format, parseISO, eachDayOfInterval } from 'date-fns';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const Admin = ({ session }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState([]);
@@ -172,7 +178,7 @@ const Admin = ({ session }) => {
 
     let fullHistory = [];
     if (firstRecord) {
-      const startDate = parseISO(firstRecord.record_date);
+      const startDate = parseLocalDate(firstRecord.record_date);
       const endDate = new Date();
       
       const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
@@ -212,7 +218,7 @@ const Admin = ({ session }) => {
             return (
               <div key={record.record_date} className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(parseISO(record.record_date), 'EEEE, MMM do')}</h3>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{format(parseLocalDate(record.record_date), 'EEEE, MMM do')}</h3>
                   <span style={{ color: dailyScore >= 50 ? '#10b981' : (dailyScore === 0 ? 'var(--text-muted)' : 'var(--primary)'), fontWeight: 'bold', fontSize: '1.1rem' }}>{dailyScore}% Total</span>
                 </div>
                 <button 
@@ -237,7 +243,7 @@ const Admin = ({ session }) => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseISO(detailedDay.record_date), 'EEEE, MMM do')}</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{format(parseLocalDate(detailedDay.record_date), 'EEEE, MMM do')}</h2>
                   <p style={{ color: 'var(--text-muted)' }}>{detailedDay.completed_tasks}/{detailedDay.total_tasks || 0} Tasks Completed</p>
                 </div>
                 <button onClick={() => setDetailedDay(null)} style={{ background: 'var(--bg-card)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
