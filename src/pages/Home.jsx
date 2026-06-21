@@ -49,26 +49,6 @@ const Home = ({ session }) => {
     }
   }, [counterValue, activeTask]);
 
-  // Handle back button to close activeTask modal
-  useEffect(() => {
-    if (!activeTask) return;
-
-    window.history.pushState({ modal: 'home_task' }, '');
-
-    const handlePopState = () => {
-      setActiveTask(null);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.modal === 'home_task') {
-        window.history.back();
-      }
-    };
-  }, [activeTask]);
-
   const fetchTodayData = async () => {
     const generatedTasks = generateDailyTasks();
     const userId = session?.user?.id;

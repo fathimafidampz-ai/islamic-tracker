@@ -82,7 +82,7 @@ const BottomNav = ({ session }) => {
                 Go Back
               </button>
               <button 
-                onClick={() => { setShowPopup(false); navigate(pendingPath); }} 
+                onClick={() => { setShowPopup(false); navigate(pendingPath, { replace: location.pathname === pendingPath }); }} 
                 className="btn-primary" 
                 style={{ flex: 1 }}
               >
@@ -102,6 +102,7 @@ const BottomNav = ({ session }) => {
           <NavLink
             key={item.path}
             to={item.path}
+            replace={location.pathname === item.path}
             onClick={(e) => handleNavClick(e, item.path)}
             style={({ isActive }) => ({
               display: 'flex', flexDirection: 'column', alignItems: 'center',

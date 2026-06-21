@@ -65,26 +65,6 @@ const Analytics = ({ session }) => {
     };
   }, [triggerRender]);
 
-  // Handle back button to close detailedDay modal
-  useEffect(() => {
-    if (!detailedDay) return;
-
-    window.history.pushState({ modal: 'analytics_detail' }, '');
-
-    const handlePopState = () => {
-      setDetailedDay(null);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.modal === 'analytics_detail') {
-        window.history.back();
-      }
-    };
-  }, [detailedDay]);
-
   const fetchAnalytics = async () => {
     const userId = session?.user?.id;
     const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;

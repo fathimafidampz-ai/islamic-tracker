@@ -17,26 +17,6 @@ const Notes = ({ session }) => {
     fetchNotes();
   }, []);
 
-  // Handle back button to close isCreating modal
-  useEffect(() => {
-    if (!isCreating) return;
-
-    window.history.pushState({ modal: 'notes_edit' }, '');
-
-    const handlePopState = () => {
-      setIsCreating(false);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.modal === 'notes_edit') {
-        window.history.back();
-      }
-    };
-  }, [isCreating]);
-
   const fetchNotes = async () => {
     const userId = session?.user?.id;
     const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';
