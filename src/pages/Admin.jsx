@@ -20,6 +20,18 @@ const Admin = ({ session }) => {
   const [activeUser, setActiveUser] = useState(null); // string (email)
   const [detailedDay, setDetailedDay] = useState(null); // record object
 
+  // Reset sub-state/modal when Admin nav is clicked again
+  useEffect(() => {
+    const handleNavClickEvent = (e) => {
+      if (e.detail?.path === '/admin') {
+        setActiveUser(null);
+        setDetailedDay(null);
+      }
+    };
+    window.addEventListener('nav-click', handleNavClickEvent);
+    return () => window.removeEventListener('nav-click', handleNavClickEvent);
+  }, []);
+
   useEffect(() => {
     if (session?.user?.email === 'fathimafidampz@gmail.com') {
       fetchAdminData();

@@ -88,6 +88,9 @@ const BottomNav = ({ session }) => {
   }, [location.pathname, session]);
 
   const handleNavClick = (e, path) => {
+    // Dispatch custom event to let active pages reset their nested/details state to root
+    window.dispatchEvent(new CustomEvent('nav-click', { detail: { path } }));
+
     if (location.pathname === '/' && path !== '/') {
       if (checkIncompleteDikrs()) {
         e.preventDefault();

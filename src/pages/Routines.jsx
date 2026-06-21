@@ -26,6 +26,18 @@ const Routines = ({ session }) => {
     fetchRoutines();
   }, []);
 
+  // Reset page state/modal when Routine nav is clicked again
+  useEffect(() => {
+    const handleNavClickEvent = (e) => {
+      if (e.detail?.path === '/routines') {
+        setIsCreating(false);
+        setEditingId(null);
+      }
+    };
+    window.addEventListener('nav-click', handleNavClickEvent);
+    return () => window.removeEventListener('nav-click', handleNavClickEvent);
+  }, []);
+
   const sortRoutines = (list) => {
     return [...list].sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
   };

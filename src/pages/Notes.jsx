@@ -17,6 +17,18 @@ const Notes = ({ session }) => {
     fetchNotes();
   }, []);
 
+  // Reset page state/modal when Notes nav is clicked again
+  useEffect(() => {
+    const handleNavClickEvent = (e) => {
+      if (e.detail?.path === '/notes') {
+        setIsCreating(false);
+        setEditingId(null);
+      }
+    };
+    window.addEventListener('nav-click', handleNavClickEvent);
+    return () => window.removeEventListener('nav-click', handleNavClickEvent);
+  }, []);
+
   const fetchNotes = async () => {
     const userId = session?.user?.id;
     const cacheKey = userId ? `noor_notes_cache_${userId}` : 'noor_notes_cache';

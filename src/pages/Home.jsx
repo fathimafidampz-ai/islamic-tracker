@@ -49,6 +49,17 @@ const Home = ({ session }) => {
     }
   }, [counterValue, activeTask]);
 
+  // Reset sub-state/modal when Home/Worship nav is clicked again
+  useEffect(() => {
+    const handleNavClickEvent = (e) => {
+      if (e.detail?.path === '/') {
+        setActiveTask(null);
+      }
+    };
+    window.addEventListener('nav-click', handleNavClickEvent);
+    return () => window.removeEventListener('nav-click', handleNavClickEvent);
+  }, []);
+
   const fetchTodayData = async () => {
     const generatedTasks = generateDailyTasks();
     const userId = session?.user?.id;

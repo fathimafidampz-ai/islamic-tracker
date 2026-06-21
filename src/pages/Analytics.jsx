@@ -65,6 +65,18 @@ const Analytics = ({ session }) => {
     };
   }, [triggerRender]);
 
+  // Reset sub-state/modal when Analytics nav is clicked again
+  useEffect(() => {
+    const handleNavClickEvent = (e) => {
+      if (e.detail?.path === '/analytics') {
+        setDetailedDay(null);
+        setSelectedDay(null);
+      }
+    };
+    window.addEventListener('nav-click', handleNavClickEvent);
+    return () => window.removeEventListener('nav-click', handleNavClickEvent);
+  }, []);
+
   const fetchAnalytics = async () => {
     const userId = session?.user?.id;
     const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
