@@ -53,6 +53,40 @@ const BottomNav = ({ session }) => {
     return false;
   };
 
+  const allowTransitionRef = React.useRef(false);
+  const [lastPath, setLastPath] = useState(location.pathname);
+
+  // Intercept browser back/forward buttons and any other non-click internal navigations
+  useEffect(() => {
+    if (lastPath === '/' && location.pathname !== '/') {
+      if (allowTransitionRef.current) {
+        allowTransitionRef.current = false;
+        setLastPath(location.pathname);
+      } else if (checkIncompleteDikrs()) {
+        // Revert the route change immediately
+        navigate('/', { replace: true });
+        setPendingPath(location.pathname);
+        setShowPopup(true);
+      } else {
+        setLastPath(location.pathname);
+      }
+    } else {
+      setLastPath(location.pathname);
+    }
+  }, [location.pathname, lastPath]);
+
+  // Intercept completely going out of the app (tab close, reload, external navigation)
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (location.pathname === '/' && checkIncompleteDikrs()) {
+        e.preventDefault();
+        e.returnValue = ''; // Standard browser confirmation prompt
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [location.pathname, session]);
+
   const handleNavClick = (e, path) => {
     if (location.pathname === '/' && path !== '/') {
       if (checkIncompleteDikrs()) {
@@ -82,7 +116,11 @@ const BottomNav = ({ session }) => {
                 Go Back
               </button>
               <button 
-                onClick={() => { setShowPopup(false); navigate(pendingPath, { replace: location.pathname === pendingPath }); }} 
+                onClick={() => { 
+                  allowTransitionRef.current = true;
+                  setShowPopup(false); 
+                  navigate(pendingPath, { replace: location.pathname === pendingPath }); 
+                }} 
                 className="btn-primary" 
                 style={{ flex: 1 }}
               >
