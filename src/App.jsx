@@ -111,13 +111,19 @@ function App() {
       try {
         await syncOfflineData(userId);
         const channel = supabase.channel('admin_realtime');
-        channel.subscribe((status) => {
+        channel.subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            channel.send({
-              type: 'broadcast',
-              event: 'task_update',
-              payload: {}
-            }).catch(console.error);
+            try {
+              await channel.send({
+                type: 'broadcast',
+                event: 'task_update',
+                payload: {}
+              });
+            } catch (sendErr) {
+              console.error("Failed to send startup broadcast:", sendErr);
+            } finally {
+              supabase.removeChannel(channel);
+            }
           }
         });
       } catch (err) {

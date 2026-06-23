@@ -42,11 +42,16 @@ const Analytics = ({ session }) => {
     return !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
   });
 
-  // Broadcast channel
   const [broadcastChannel, setBroadcastChannel] = useState(null);
 
   useEffect(() => {
     fetchAnalytics();
+
+    // Ensure we clean up any pre-existing channel of the same name first
+    const existingChannel = supabase.getChannels().find(c => c.topic === 'realtime:admin_realtime');
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
 
     const channel = supabase.channel('admin_realtime', {
       config: {

@@ -188,6 +188,13 @@ const Home = ({ session }) => {
 
   useEffect(() => {
     fetchTodayData();
+
+    // Ensure we clean up any pre-existing channel of the same name first
+    const existingChannel = supabase.getChannels().find(c => c.topic === 'realtime:admin_realtime');
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+
     const channel = supabase.channel('admin_realtime', {
       config: {
         broadcast: { self: true }
@@ -288,7 +295,7 @@ const Home = ({ session }) => {
     }
   };
 
-  const updateCounterProgress = (newCount) => {
+  const updateCounterProgress = async (newCount) => {
     setCounterValue(newCount);
     
     // Update local state so background list updates instantly
@@ -305,20 +312,23 @@ const Home = ({ session }) => {
 
     // Try DB Update
     if (activeTask.worship_record_id) {
-      if (newCount === 0 && !existingEntry.is_completed) {
-        supabase.from('task_completions').delete()
-          .eq('worship_record_id', activeTask.worship_record_id)
-          .eq('task_id', activeTask.id)
-          .catch(() => {});
-      } else {
-        supabase.from('task_completions').upsert({
-          worship_record_id: activeTask.worship_record_id,
-          task_id: activeTask.id,
-          count_reached: newCount,
-          is_completed: existingEntry.is_completed // Preserve existing completion status
-        }, { onConflict: 'worship_record_id, task_id' }).catch(() => {});
+      try {
+        if (newCount === 0 && !existingEntry.is_completed) {
+          await supabase.from('task_completions').delete()
+            .eq('worship_record_id', activeTask.worship_record_id)
+            .eq('task_id', activeTask.id);
+        } else {
+          await supabase.from('task_completions').upsert({
+            worship_record_id: activeTask.worship_record_id,
+            task_id: activeTask.id,
+            count_reached: newCount,
+            is_completed: existingEntry.is_completed // Preserve existing completion status
+          }, { onConflict: 'worship_record_id, task_id' });
+        }
+        broadcastUpdate();
+      } catch (err) {
+        console.error("Failed to update counter in DB:", err);
       }
-      broadcastUpdate();
     }
   };
 

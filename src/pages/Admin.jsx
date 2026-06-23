@@ -51,6 +51,12 @@ const Admin = ({ session }) => {
         fetchAdminData();
       }, 3000);
 
+      // Ensure we clean up any pre-existing channel of the same name first
+      const existingChannel = supabase.getChannels().find(c => c.topic === 'realtime:admin_realtime');
+      if (existingChannel) {
+        supabase.removeChannel(existingChannel);
+      }
+
       // Realtime listener for immediate updates when a user clicks a task
       const subscription = supabase.channel('admin_realtime', {
         config: {
