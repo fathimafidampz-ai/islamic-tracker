@@ -7,8 +7,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return new Date();
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
+  const cleanDateStr = dateStr.substring(0, 10);
+  const parts = cleanDateStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  const fallback = new Date(dateStr);
+  return isNaN(fallback.getTime()) ? new Date() : fallback;
 };
 
 const Admin = ({ session }) => {
@@ -150,8 +160,9 @@ const Admin = ({ session }) => {
 
           {Object.entries(groupedData)
             .map(([email, records]) => {
-            records.sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
-            const latestRecord = records[0];
+            const sortedRecords = [...records].sort((a, b) => b.record_date.localeCompare(a.record_date));
+            const latestRecord = sortedRecords[0];
+            const latestRecordDate = latestRecord?.record_date;
             const totalLifetimeTasks = records.reduce((sum, r) => sum + r.completed_tasks, 0);
 
             return (
@@ -171,7 +182,9 @@ const Admin = ({ session }) => {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Active {format(new Date(latestRecord.record_date), 'MMM d')}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Active {latestRecordDate ? format(parseLocalDate(latestRecordDate), 'MMM d') : 'N/A'}
+                  </div>
                 </div>
               </div>
             );
@@ -185,28 +198,37 @@ const Admin = ({ session }) => {
     const dbRecords = groupedData[activeUser] || [];
 
     // Fill missing days using eachDayOfInterval
-    const sortedRecords = [...dbRecords].sort((a, b) => new Date(a.record_date) - new Date(b.record_date));
+    const sortedRecords = [...dbRecords].sort((a, b) => a.record_date.localeCompare(b.record_date));
     const firstRecord = sortedRecords.length > 0 ? sortedRecords[0] : null;
 
     let fullHistory = [];
     if (firstRecord) {
       const startDate = parseLocalDate(firstRecord.record_date);
-      const endDate = new Date();
+      let endDate = new Date();
       
-      const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
+      // Prevent RangeError: Start date cannot be after end date due to timezone or clock drift
+      if (startDate > endDate) {
+        endDate = new Date(startDate);
+      }
       
-      fullHistory = dateRange.map(date => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        const record = dbRecords.find(r => r.record_date === dateStr);
-        const dayTasks = generateDailyTasks(date);
-        return {
-          record_date: dateStr,
-          completed_tasks: record ? record.completed_tasks : 0,
-          completed_task_ids: record ? (record.completed_task_ids || []) : [],
-          total_tasks: dayTasks.length,
-          dayTasks
-        };
-      }).reverse();
+      try {
+        const dateRange = eachDayOfInterval({ start: startDate, end: endDate });
+        
+        fullHistory = dateRange.map(date => {
+          const dateStr = format(date, 'yyyy-MM-dd');
+          const record = dbRecords.find(r => r.record_date === dateStr);
+          const dayTasks = generateDailyTasks(date);
+          return {
+            record_date: dateStr,
+            completed_tasks: record ? record.completed_tasks : 0,
+            completed_task_ids: record ? (record.completed_task_ids || []) : [],
+            total_tasks: dayTasks.length,
+            dayTasks
+          };
+        }).reverse();
+      } catch (err) {
+        console.error("Error generating history interval:", err);
+      }
     }
     
     return (
