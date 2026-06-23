@@ -15,9 +15,6 @@ import Admin from './pages/Admin';
 
 const BottomNav = ({ session }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [showPopup, setShowPopup] = useState(false);
-  const [pendingPath, setPendingPath] = useState(null);
 
   const navItems = [
     { path: '/', icon: Moon, label: 'Worship' },
@@ -53,28 +50,6 @@ const BottomNav = ({ session }) => {
     return false;
   };
 
-  const allowTransitionRef = React.useRef(false);
-  const [lastPath, setLastPath] = useState(location.pathname);
-
-  // Intercept browser back/forward buttons and any other non-click internal navigations
-  useEffect(() => {
-    if (lastPath === '/' && location.pathname !== '/') {
-      if (allowTransitionRef.current) {
-        allowTransitionRef.current = false;
-        setLastPath(location.pathname);
-      } else if (checkIncompleteDikrs()) {
-        // Revert the route change immediately
-        navigate('/', { replace: true });
-        setPendingPath(location.pathname);
-        setShowPopup(true);
-      } else {
-        setLastPath(location.pathname);
-      }
-    } else {
-      setLastPath(location.pathname);
-    }
-  }, [location.pathname, lastPath]);
-
   // Intercept completely going out of the app (tab close, reload, external navigation)
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -90,50 +65,10 @@ const BottomNav = ({ session }) => {
   const handleNavClick = (e, path) => {
     // Dispatch custom event to let active pages reset their nested/details state to root
     window.dispatchEvent(new CustomEvent('nav-click', { detail: { path } }));
-
-    if (location.pathname === '/' && path !== '/') {
-      if (checkIncompleteDikrs()) {
-        e.preventDefault();
-        setPendingPath(path);
-        setShowPopup(true);
-      }
-    }
   };
 
   return (
     <>
-      {showPopup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div className="glass-panel animate-in" style={{ padding: '24px', textAlign: 'center', maxWidth: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <AlertCircle color="#f59e0b" size={48} style={{ marginBottom: '16px' }} />
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Dikrs Incomplete</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              You marked a Fard prayer as complete but didn't complete its Adhkar (dikrs). Are you sure you want to leave?
-            </p>
-            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button 
-                onClick={() => setShowPopup(false)} 
-                className="glass-panel" 
-                style={{ flex: 1, padding: '12px', color: 'var(--text-main)', cursor: 'pointer', border: '1px solid var(--glass-border)' }}
-              >
-                Go Back
-              </button>
-              <button 
-                onClick={() => { 
-                  allowTransitionRef.current = true;
-                  setShowPopup(false); 
-                  navigate(pendingPath, { replace: location.pathname === pendingPath }); 
-                }} 
-                className="btn-primary" 
-                style={{ flex: 1 }}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <nav className="glass-nav" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, 
         height: 'var(--nav-height)', display: 'flex', justifyContent: 'space-around', alignItems: 'center',
