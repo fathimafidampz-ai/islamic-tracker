@@ -75,14 +75,13 @@ export const syncOfflineData = async (userId) => {
   
   const prefix = `worship_cache_${userId}_`;
   
-  // Clone keys first so we don't index-shift while mutating localStorage
-  const keys = [];
+  // 1. Migrate unauthenticated keys to authenticated keys
+  const initialKeys = [];
   for (let i = 0; i < localStorage.length; i++) {
-    keys.push(localStorage.key(i));
+    initialKeys.push(localStorage.key(i));
   }
   
-  // 1. Migrate unauthenticated keys to authenticated keys
-  for (const key of keys) {
+  for (const key of initialKeys) {
     if (key && key.startsWith('worship_cache_') && !key.startsWith(prefix)) {
       const datePart = key.replace('worship_cache_', '');
       if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
@@ -91,6 +90,12 @@ export const syncOfflineData = async (userId) => {
         localStorage.removeItem(key);
       }
     }
+  }
+
+  // Get keys again to include any newly migrated authenticated keys
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    keys.push(localStorage.key(i));
   }
 
   // 2. Sync all authenticated keys to Supabase
@@ -110,22 +115,44 @@ export const syncOfflineData = async (userId) => {
         }
 
         const { data: completions } = await supabase.from('task_completions').select('*').eq('worship_record_id', record.id);
+        const dbCompletions = completions || [];
+        const upserts = [];
+        const deletions = [];
 
-        const tasksToSync = Object.entries(cachedData).map(([taskId, val]) => {
-          if (val.is_completed || val.count_reached > 0) {
-            return {
-              worship_record_id: record.id,
-              task_id: taskId,
-              is_completed: val.is_completed || false,
-              count_reached: val.count_reached || 0,
-              completed_at: val.is_completed ? new Date().toISOString() : null
-            };
+        Object.entries(cachedData).forEach(([taskId, val]) => {
+          const dbState = dbCompletions.find(c => c.task_id === taskId);
+          const cacheIsCompleted = val.is_completed || false;
+          const cacheCountReached = val.count_reached || 0;
+
+          if (cacheIsCompleted || cacheCountReached > 0) {
+            const needsUpsert = !dbState || 
+                                dbState.is_completed !== cacheIsCompleted || 
+                                dbState.count_reached !== cacheCountReached;
+            if (needsUpsert) {
+              upserts.push({
+                worship_record_id: record.id,
+                task_id: taskId,
+                is_completed: cacheIsCompleted,
+                count_reached: cacheCountReached,
+                completed_at: cacheIsCompleted ? (dbState?.completed_at || new Date().toISOString()) : null
+              });
+            }
+          } else {
+            if (dbState) {
+              deletions.push(taskId);
+            }
           }
-          return null;
-        }).filter(Boolean);
+        });
 
-        if (tasksToSync.length > 0) {
-          await supabase.from('task_completions').upsert(tasksToSync, { onConflict: 'worship_record_id, task_id' });
+        if (upserts.length > 0) {
+          await supabase.from('task_completions').upsert(upserts, { onConflict: 'worship_record_id, task_id' });
+        }
+
+        if (deletions.length > 0) {
+          await supabase.from('task_completions')
+            .delete()
+            .eq('worship_record_id', record.id)
+            .in('task_id', deletions);
         }
       } catch (err) {
         console.error("Sync error for date", dateStr, err);

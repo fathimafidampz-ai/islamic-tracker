@@ -95,10 +95,38 @@ const Home = ({ session }) => {
       const { data: completions, error: compError } = await supabase.from('task_completions').select('*').eq('worship_record_id', record.id);
       if (compError) throw compError;
 
+      const tasksToSync = [];
+      const tasksToDelete = [];
       const merged = generatedTasks.map(task => {
         const dbState = completions?.find(c => c.task_id === task.id);
-        const isCompleted = dbState ? dbState.is_completed : (cachedData[task.id]?.is_completed || false);
-        const countReached = dbState ? dbState.count_reached : (cachedData[task.id]?.count_reached || 0);
+        const cacheState = cachedData[task.id];
+        
+        const cacheIsCompleted = cacheState?.is_completed || false;
+        const cacheCountReached = cacheState?.count_reached || 0;
+        
+        const dbIsCompleted = dbState?.is_completed || false;
+        const dbCountReached = dbState?.count_reached || 0;
+        
+        const isCompleted = cacheState ? cacheIsCompleted : dbIsCompleted;
+        const countReached = cacheState ? cacheCountReached : dbCountReached;
+
+        if (cacheState) {
+          if (cacheIsCompleted || cacheCountReached > 0) {
+            if (!dbState || dbIsCompleted !== cacheIsCompleted || dbCountReached !== cacheCountReached) {
+              tasksToSync.push({
+                worship_record_id: record.id,
+                task_id: task.id,
+                is_completed: cacheIsCompleted,
+                count_reached: cacheCountReached,
+                completed_at: cacheIsCompleted ? (dbState?.completed_at || new Date().toISOString()) : null
+              });
+            }
+          } else {
+            if (dbState) {
+              tasksToDelete.push(task.id);
+            }
+          }
+        }
         
         return {
           ...task,
@@ -111,6 +139,28 @@ const Home = ({ session }) => {
       setTasks(merged);
       calculateProgress(merged);
       setIsOffline(false);
+
+      if (tasksToSync.length > 0) {
+        supabase.from('task_completions')
+          .upsert(tasksToSync, { onConflict: 'worship_record_id, task_id' })
+          .then(() => {
+            console.log(`Synced ${tasksToSync.length} cache tasks to DB`);
+            broadcastUpdate();
+          })
+          .catch(err => console.error("Error syncing cache tasks to DB:", err));
+      }
+
+      if (tasksToDelete.length > 0) {
+        supabase.from('task_completions')
+          .delete()
+          .eq('worship_record_id', record.id)
+          .in('task_id', tasksToDelete)
+          .then(() => {
+            console.log(`Deleted ${tasksToDelete.length} tasks from DB`);
+            broadcastUpdate();
+          })
+          .catch(err => console.error("Error deleting tasks from DB:", err));
+      }
     } catch (err) {
       console.error("DB Error:", err);
       setIsOffline(true);

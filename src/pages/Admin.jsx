@@ -163,7 +163,12 @@ const Admin = ({ session }) => {
             const sortedRecords = [...records].sort((a, b) => b.record_date.localeCompare(a.record_date));
             const latestRecord = sortedRecords[0];
             const latestRecordDate = latestRecord?.record_date;
-            const totalLifetimeTasks = records.reduce((sum, r) => sum + r.completed_tasks, 0);
+            
+            // Calculate progress score for the latest active day
+            const latestDayTasks = latestRecordDate ? generateDailyTasks(parseLocalDate(latestRecordDate)) : [];
+            const latestTotalTasks = latestDayTasks.length || latestRecord?.total_tasks || 0;
+            const latestCompletedTasks = latestRecord?.completed_tasks || 0;
+            const latestScore = latestTotalTasks === 0 ? 0 : Math.round((latestCompletedTasks / latestTotalTasks) * 100);
 
             return (
               <div 
@@ -181,7 +186,14 @@ const Admin = ({ session }) => {
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{email}</p>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <span style={{ 
+                    fontSize: '1.1rem', 
+                    fontWeight: 'bold', 
+                    color: latestScore >= 50 ? '#10b981' : (latestScore === 0 ? 'var(--text-muted)' : 'var(--primary)') 
+                  }}>
+                    {latestScore}%
+                  </span>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     Active {latestRecordDate ? format(parseLocalDate(latestRecordDate), 'MMM d') : 'N/A'}
                   </div>

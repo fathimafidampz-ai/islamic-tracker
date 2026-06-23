@@ -190,10 +190,13 @@ function App() {
       }
     };
 
+    let activeUserId = null;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
       if (session) {
+        activeUserId = session.user.id;
         startNotificationService(session);
         triggerSyncAndBroadcast(session.user.id);
       }
@@ -204,14 +207,28 @@ function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
+        activeUserId = session.user.id;
         startNotificationService(session);
         triggerSyncAndBroadcast(session.user.id);
       } else {
+        activeUserId = null;
         stopNotificationService();
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleOnline = () => {
+      if (activeUserId) {
+        console.log("App came online, triggering sync...");
+        triggerSyncAndBroadcast(activeUserId);
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+    };
   }, []);
 
   if (loading) {
