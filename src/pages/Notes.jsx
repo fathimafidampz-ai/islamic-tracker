@@ -184,14 +184,19 @@ const Notes = ({ session }) => {
 
       {loading ? (
         <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>
+      ) : filteredNotes.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <p>No notes found.</p>
+          {!isCreating && <p style={{ fontSize: '0.9rem', marginTop: '8px' }}>Tap + to write your first smart note!</p>}
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="notes-grid">
           {filteredNotes.map(note => (
             <div 
               key={note.id} 
-              className="glass-panel" 
+              className="glass-panel note-card" 
               onClick={() => openEditForm(note)}
-              style={{ background: getNoteBackground(note.color), padding: '16px', position: 'relative', minHeight: '120px', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }}
+              style={{ background: getNoteBackground(note.color), padding: '16px', position: 'relative', minHeight: '120px', cursor: 'pointer', transition: 'transform 0.2s' }}
             >
               <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '4px' }}>
                 <button onClick={(e) => { e.stopPropagation(); togglePin(note.id, note.is_pinned); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
@@ -207,13 +212,6 @@ const Notes = ({ session }) => {
               </p>
             </div>
           ))}
-
-          {filteredNotes.length === 0 && !isCreating && (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-              <p>No notes found.</p>
-              <p style={{ fontSize: '0.9rem', marginTop: '8px' }}>Tap + to write your first smart note!</p>
-            </div>
-          )}
         </div>
       )}
 

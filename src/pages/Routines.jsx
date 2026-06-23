@@ -186,7 +186,7 @@ const Routines = ({ session }) => {
             placeholder="Routine Title (e.g. Morning Focus)" 
             value={formTitle}
             onChange={(e) => setFormTitle(e.target.value)}
-            style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'white', padding: '12px', borderRadius: '8px', outline: 'none' }}
+            style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '12px', borderRadius: '8px', outline: 'none' }}
           />
 
           <div>
@@ -221,7 +221,7 @@ const Routines = ({ session }) => {
                 type="time" 
                 value={formStartTime}
                 onChange={(e) => setFormStartTime(e.target.value)}
-                style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'white', padding: '12px', borderRadius: '8px', outline: 'none' }}
+                style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '12px', borderRadius: '8px', outline: 'none' }}
               />
             </div>
             <div style={{ flex: 1 }}>
@@ -230,7 +230,7 @@ const Routines = ({ session }) => {
                 type="time" 
                 value={formEndTime}
                 onChange={(e) => setFormEndTime(e.target.value)}
-                style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'white', padding: '12px', borderRadius: '8px', outline: 'none' }}
+                style={{ width: '100%', background: 'var(--bg-darker)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '12px', borderRadius: '8px', outline: 'none' }}
               />
             </div>
           </div>
