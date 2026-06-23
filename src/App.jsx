@@ -15,6 +15,7 @@ import Admin from './pages/Admin';
 
 const BottomNav = ({ session }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { path: '/', icon: Moon, label: 'Worship' },
@@ -65,6 +66,15 @@ const BottomNav = ({ session }) => {
   const handleNavClick = (e, path) => {
     // Dispatch custom event to let active pages reset their nested/details state to root
     window.dispatchEvent(new CustomEvent('nav-click', { detail: { path } }));
+
+    if (path === '/' && location.pathname !== '/') {
+      e.preventDefault();
+      if (window.history.state && window.history.state.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
   };
 
   return (
@@ -78,7 +88,7 @@ const BottomNav = ({ session }) => {
           <NavLink
             key={item.path}
             to={item.path}
-            replace={location.pathname === item.path}
+            replace={location.pathname !== '/'}
             onClick={(e) => handleNavClick(e, item.path)}
             style={({ isActive }) => ({
               display: 'flex', flexDirection: 'column', alignItems: 'center',
