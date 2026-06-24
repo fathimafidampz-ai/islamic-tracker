@@ -544,7 +544,7 @@ const Home = ({ session }) => {
                   onClick={submitModalTask}
                   disabled={counterValue < activeTask.target}
                   className="btn-primary" 
-                  style={{ marginTop: 'auto', width: '100%', opacity: counterValue >= activeTask.target ? 1 : 0.5 }}
+                  style={{ marginTop: '40px', width: '100%', opacity: counterValue >= activeTask.target ? 1 : 0.5 }}
                 >
                   {counterValue >= activeTask.target ? 'Complete Task' : 'Reach target to complete'}
                 </button>
