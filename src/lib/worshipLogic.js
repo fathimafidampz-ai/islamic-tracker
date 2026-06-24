@@ -8,7 +8,7 @@ export const generateDailyTasks = (date = new Date()) => {
   const tasks = [];
 
   const fardDikrItems = [
-    { id: 'dikr_subhanallah', title: '33 × Subhanallah', points: 5, type: 'counter', target: 33, imageUrl: '/tahajjud_subhanallah.png' },
+    { id: 'dikr_subhanallah', title: '33 × Subhanallah', points: 5, type: 'counter', target: 33 },
     { id: 'dikr_alhamdulillah', title: '33 × Alhamdulillah', points: 5, type: 'counter', target: 33 },
     { id: 'dikr_allahuakbar', title: '33 × Allahu Akbar', points: 5, type: 'counter', target: 33 },
     { id: 'dikr_ayatulkursi', title: '1 × Ayatul Kursi', points: 10, type: 'counter', target: 1 },

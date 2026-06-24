@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { format } from 'date-fns';
@@ -17,6 +17,19 @@ const Home = ({ session }) => {
   // Modal State
   const [activeTask, setActiveTask] = useState(null);
   const [counterValue, setCounterValue] = useState(0);
+  const modalRef = useRef(null);
+
+  // Reset modal scroll to top when activeTask changes
+  useEffect(() => {
+    if (activeTask) {
+      const timer = setTimeout(() => {
+        if (modalRef.current) {
+          modalRef.current.scrollTop = 0;
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTask]);
   const [showNotifBanner, setShowNotifBanner] = useState(() => {
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted' || Notification.permission === 'denied') return false;
@@ -475,6 +488,7 @@ const Home = ({ session }) => {
       <AnimatePresence>
         {activeTask && (
           <motion.div 
+            ref={modalRef}
             initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
             style={{ position: 'fixed', inset: 0, background: 'var(--bg-darker)', zIndex: 100, display: 'flex', flexDirection: 'column', padding: '24px', overflowY: 'auto' }}
           >
