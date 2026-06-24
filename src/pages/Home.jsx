@@ -23,7 +23,6 @@ const Home = ({ session }) => {
 
   // Reset modal scroll to top when activeTask changes
   useEffect(() => {
-    setShowBenefits(false);
     if (activeTask) {
       const timer = setTimeout(() => {
         if (modalRef.current) {
@@ -31,6 +30,8 @@ const Home = ({ session }) => {
         }
       }, 50);
       return () => clearTimeout(timer);
+    } else {
+      setShowBenefits(false);
     }
   }, [activeTask]);
   const [showNotifBanner, setShowNotifBanner] = useState(() => {
@@ -307,6 +308,11 @@ const Home = ({ session }) => {
       setActiveTask(task);
       if (task.type === 'counter') {
         setCounterValue(task.count_reached || 0);
+      }
+      if (task.type === 'checkbox' && hasBenefits) {
+        setShowBenefits(true);
+      } else {
+        setShowBenefits(false);
       }
     } else {
       toggleTask(task);
@@ -631,46 +637,6 @@ const Home = ({ session }) => {
               </div>
             )}
 
-            {/* CHECKBOX UI */}
-            {activeTask.type === 'checkbox' && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-                <div 
-                  onClick={() => {
-                    toggleTask(activeTask);
-                    setActiveTask(null);
-                  }}
-                  style={{ cursor: 'pointer', marginBottom: '30px', transition: 'transform 0.2s' }}
-                >
-                  {activeTask.is_completed ? (
-                    <CheckCircle2 color="var(--primary)" size={120} />
-                  ) : (
-                    <Circle color="var(--text-muted)" size={120} />
-                  )}
-                </div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '10px', color: 'var(--text-main)' }}>
-                  {activeTask.is_completed ? 'Completed' : 'Mark as Completed'}
-                </h3>
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '40px' }}>
-                  {activeTask.is_completed 
-                    ? 'Alhamdulillah, you have completed this worship task today.' 
-                    : 'Tap the circle above to mark this task as completed.'}
-                </p>
-                
-                <button 
-                  onClick={() => {
-                    if (!activeTask.is_completed) {
-                      toggleTask(activeTask, true);
-                    }
-                    setActiveTask(null);
-                  }}
-                  className="btn-primary" 
-                  style={{ width: '100%' }}
-                >
-                  {activeTask.is_completed ? 'Close' : 'Complete Task'}
-                </button>
-              </div>
-            )}
-
             {/* BENEFITS OVERLAY */}
             <AnimatePresence>
               {showBenefits && benefits && (
@@ -694,7 +660,12 @@ const Home = ({ session }) => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
                     <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{benefits.title}</h3>
                     <button 
-                      onClick={() => setShowBenefits(false)} 
+                      onClick={() => {
+                        setShowBenefits(false);
+                        if (activeTask.type === 'checkbox') {
+                          setActiveTask(null);
+                        }
+                      }} 
                       style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
                     >
                       Close / മടങ്ങുക
@@ -705,6 +676,31 @@ const Home = ({ session }) => {
                   <div style={{ flex: 1, fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: '#1f2937', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {benefits.content}
                   </div>
+
+                  {/* Mark as Completed button for checkbox tasks inside benefits overlay */}
+                  {activeTask.type === 'checkbox' && !activeTask.is_completed && (
+                    <button
+                      onClick={() => {
+                        toggleTask(activeTask, true);
+                        setShowBenefits(false);
+                        setActiveTask(null);
+                      }}
+                      style={{
+                        marginTop: '20px',
+                        width: '100%',
+                        padding: '16px',
+                        background: 'var(--primary)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mark as Completed / പൂർത്തിയാക്കുക
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
