@@ -530,171 +530,152 @@ const Home = ({ session }) => {
             style={{ 
               position: 'fixed', 
               inset: 0, 
-              background: 'var(--bg-darker)', 
+              background: showBenefits ? '#ffffff' : 'var(--bg-darker)', 
               zIndex: 100, 
               display: 'flex', 
               flexDirection: 'column', 
               padding: '24px', 
-              overflowY: activeTask.type === 'content' ? 'hidden' : 'auto' 
+              overflowY: (activeTask.type === 'content' && !showBenefits) ? 'hidden' : 'auto' 
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTask.title}</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={28} /></button>
-              </div>
-            </div>
+            {showBenefits && benefits ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', color: '#000000' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{benefits.title}</h3>
+                  <button 
+                    onClick={() => {
+                      setShowBenefits(false);
+                      setActiveTask(null);
+                    }} 
+                    style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
+                  >
+                    Close / മടങ്ങുക
+                  </button>
+                </div>
+                
+                {/* Content */}
+                <div style={{ flex: 1, fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: '#1f2937', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                  {benefits.content}
+                </div>
 
-            {/* COUNTER UI */}
-            {activeTask.type === 'counter' && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {activeTask.imageUrl && (
-                  <div style={{ 
-                    width: '100%', 
-                    height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '180px', 
-                    maxHeight: activeTask.id.includes('duha_surah') ? '360px' : '180px',
-                    background: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '#ffffff' : 'var(--bg-card)', 
-                    borderRadius: '16px', 
-                    marginBottom: '30px', 
-                    display: 'flex', 
-                    alignItems: activeTask.id.includes('duha_surah') ? 'flex-start' : 'center', 
-                    justifyContent: 'center', 
-                    padding: '16px',
-                    overflowY: activeTask.id.includes('duha_surah') ? 'auto' : 'hidden',
-                    border: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '2px solid var(--primary)' : '1px solid var(--glass-border)'
-                  }}>
-                    <img 
-                      src={activeTask.imageUrl} 
-                      alt={activeTask.title} 
-                      style={{ 
+                {/* Mark as Completed button for checkbox tasks inside benefits overlay */}
+                {activeTask.type === 'checkbox' && !activeTask.is_completed && (
+                  <button
+                    onClick={() => {
+                      toggleTask(activeTask, true);
+                      setShowBenefits(false);
+                      setActiveTask(null);
+                    }}
+                    style={{
+                      marginTop: '20px',
+                      width: '100%',
+                      padding: '16px',
+                      background: 'var(--primary)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Mark as Completed / പൂർത്തിയാക്കുക
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTask.title}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={28} /></button>
+                  </div>
+                </div>
+
+                {/* COUNTER UI */}
+                {activeTask.type === 'counter' && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {activeTask.imageUrl && (
+                      <div style={{ 
                         width: '100%', 
-                        height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '100%', 
-                        objectFit: 'contain' 
-                      }} 
-                    />
+                        height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '180px', 
+                        maxHeight: activeTask.id.includes('duha_surah') ? '360px' : '180px',
+                        background: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '#ffffff' : 'var(--bg-card)', 
+                        borderRadius: '16px', 
+                        marginBottom: '30px', 
+                        display: 'flex', 
+                        alignItems: activeTask.id.includes('duha_surah') ? 'flex-start' : 'center', 
+                        justifyContent: 'center', 
+                        padding: '16px',
+                        overflowY: activeTask.id.includes('duha_surah') ? 'auto' : 'hidden',
+                        border: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '2px solid var(--primary)' : '1px solid var(--glass-border)'
+                      }}>
+                        <img 
+                          src={activeTask.imageUrl} 
+                          alt={activeTask.title} 
+                          style={{ 
+                            width: '100%', 
+                            height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '100%', 
+                            objectFit: 'contain' 
+                          }} 
+                        />
+                      </div>
+                    )}
+                    
+                    <div 
+                      onClick={() => updateCounterProgress(counterValue + 1)}
+                      style={{ width: '220px', height: '220px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem', fontWeight: 'bold', color: 'var(--primary)', cursor: 'pointer', userSelect: 'none', boxShadow: '0 0 40px var(--primary-glow)', flexShrink: 0 }}
+                    >
+                      {counterValue}
+                    </div>
+                    <p style={{ marginTop: '20px', color: 'var(--text-muted)', fontSize: '1.2rem' }}>Target: {activeTask.target}</p>
+                    
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '20px', marginBottom: '20px' }}>
+                      <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(Math.max(0, counterValue - 1))}><RefreshCw size={18} /> -1</button>
+                      <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(0)}>Reset</button>
+                    </div>
                   </div>
                 )}
-                
-                <div 
-                  onClick={() => updateCounterProgress(counterValue + 1)}
-                  style={{ width: '220px', height: '220px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem', fontWeight: 'bold', color: 'var(--primary)', cursor: 'pointer', userSelect: 'none', boxShadow: '0 0 40px var(--primary-glow)', flexShrink: 0 }}
-                >
-                  {counterValue}
-                </div>
-                <p style={{ marginTop: '20px', color: 'var(--text-muted)', fontSize: '1.2rem' }}>Target: {activeTask.target}</p>
-                
-                <div style={{ display: 'flex', gap: '16px', marginTop: '20px', marginBottom: '20px' }}>
-                  <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(Math.max(0, counterValue - 1))}><RefreshCw size={18} /> -1</button>
-                  <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(0)}>Reset</button>
-                </div>
 
-              </div>
-            )}
-
-            {/* CONTENT UI */}
-            {activeTask.type === 'content' && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ 
-                  flex: 1, 
-                  borderRadius: '24px', 
-                  background: 'var(--bg-card)', 
-                  border: '1px solid var(--glass-border)',
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'stretch', 
-                  justifyContent: 'stretch',
-                  padding: '4px',
-                  marginBottom: '16px',
-                  overflow: 'hidden'
-                }}>
-                  {activeTask.contentUrl.endsWith('.pdf') ? (
-                    <iframe 
-                      src={`${activeTask.contentUrl}#toolbar=0&navpanes=0&view=FitH`}
-                      style={{ width: '100%', height: '100%', borderRadius: '18px', border: 'none' }}
-                      title={activeTask.title}
-                    />
-                  ) : (
-                    <img 
-                      src={activeTask.contentUrl} 
-                      alt={activeTask.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '18px' }} 
-                    />
-                  )}
-                </div>
-                
-                <button className="btn-primary" style={{ width: '100%', padding: '16px' }} onClick={submitModalTask}>
-                  Mark as Read & Completed
-                </button>
-              </div>
-            )}
-
-            {/* BENEFITS OVERLAY */}
-            <AnimatePresence>
-              {showBenefits && benefits && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  style={{ 
-                    position: 'absolute', 
-                    inset: 0, 
-                    background: '#ffffff', 
-                    color: '#000000', 
-                    zIndex: 110, 
-                    padding: '24px', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {/* Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
-                    <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{benefits.title}</h3>
-                    <button 
-                      onClick={() => {
-                        setShowBenefits(false);
-                        if (activeTask.type === 'checkbox') {
-                          setActiveTask(null);
-                        }
-                      }} 
-                      style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
-                    >
-                      Close / മടങ്ങുക
+                {/* CONTENT UI */}
+                {activeTask.type === 'content' && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ 
+                      flex: 1, 
+                      borderRadius: '24px', 
+                      background: 'var(--bg-card)', 
+                      border: '1px solid var(--glass-border)',
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'stretch', 
+                      justifyContent: 'stretch',
+                      padding: '4px',
+                      marginBottom: '16px',
+                      overflow: 'hidden'
+                    }}>
+                      {activeTask.contentUrl.endsWith('.pdf') ? (
+                        <iframe 
+                          src={`${activeTask.contentUrl}#toolbar=0&navpanes=0&view=FitH`}
+                          style={{ width: '100%', height: '100%', borderRadius: '18px', border: 'none' }}
+                          title={activeTask.title}
+                        />
+                      ) : (
+                        <img 
+                          src={activeTask.contentUrl} 
+                          alt={activeTask.title} 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '18px' }} 
+                        />
+                      )}
+                    </div>
+                    
+                    <button className="btn-primary" style={{ width: '100%', padding: '16px' }} onClick={submitModalTask}>
+                      Mark as Read & Completed
                     </button>
                   </div>
-                  
-                  {/* Content */}
-                  <div style={{ flex: 1, fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: '#1f2937', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                    {benefits.content}
-                  </div>
-
-                  {/* Mark as Completed button for checkbox tasks inside benefits overlay */}
-                  {activeTask.type === 'checkbox' && !activeTask.is_completed && (
-                    <button
-                      onClick={() => {
-                        toggleTask(activeTask, true);
-                        setShowBenefits(false);
-                        setActiveTask(null);
-                      }}
-                      style={{
-                        marginTop: '20px',
-                        width: '100%',
-                        padding: '16px',
-                        background: 'var(--primary)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Mark as Completed / പൂർത്തിയാക്കുക
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
