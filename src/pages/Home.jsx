@@ -28,7 +28,6 @@ const Home = ({ session }) => {
         if (modalRef.current) {
           modalRef.current.scrollTop = 0;
         }
-        window.scrollTo(0, 0);
       }, 50);
       return () => {
         clearTimeout(timer);
