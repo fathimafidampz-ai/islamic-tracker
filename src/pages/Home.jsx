@@ -7,6 +7,146 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { sendNotification } from '../lib/notifications';
 import { getBenefitsForTask } from '../lib/benefitsData';
 
+const PDFViewer = ({ url }) => {
+  const [pages, setPages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    
+    const loadPdf = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Ensure pdfjsLib is loaded
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Failed to load PDF viewer library"));
+            document.head.appendChild(script);
+          });
+        }
+        
+        const pdfjsLib = window.pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        
+        if (!active) return;
+
+        const renderedPages = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          renderedPages.push(pageNum);
+        }
+        setPages(renderedPages);
+        setLoading(false);
+        
+        // Render pages after setting pages array
+        setTimeout(async () => {
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            if (!active) break;
+            try {
+              const page = await pdf.getPage(pageNum);
+              const canvas = document.getElementById(`pdf-page-${pageNum}`);
+              if (canvas) {
+                const context = canvas.getContext('2d');
+                // Calculate scale based on container width
+                const viewport = page.getViewport({ scale: 1.5 });
+                const containerWidth = containerRef.current ? containerRef.current.clientWidth - 16 : 350;
+                const scale = containerWidth / viewport.width;
+                const scaledViewport = page.getViewport({ scale });
+                
+                canvas.height = scaledViewport.height;
+                canvas.width = scaledViewport.width;
+                
+                const renderContext = {
+                  canvasContext: context,
+                  viewport: scaledViewport
+                };
+                await page.render(renderContext).promise;
+              }
+            } catch (err) {
+              console.error(`Error rendering page ${pageNum}:`, err);
+            }
+          }
+        }, 100);
+
+      } catch (err) {
+        console.error("PDF Load Error:", err);
+        if (active) {
+          setError(err.message || "Failed to load PDF");
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadPdf();
+    
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '40px', color: 'var(--text-main)' }}>
+        <div style={{ 
+          border: '4px solid rgba(255,255,255,0.1)', 
+          borderLeft: '4px solid var(--primary)', 
+          borderRadius: '50%', 
+          width: '36px', 
+          height: '36px', 
+          animation: 'spin 1s linear infinite', 
+          marginBottom: '16px' 
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <p style={{ color: 'var(--text-muted)' }}>Loading PDF directly / ലോഡ് ചെയ്യുന്നു...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center', color: '#ef4444' }}>
+        <p>{error}</p>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '12px', padding: '8px 16px', background: 'var(--primary)', color: '#ffffff', borderRadius: '8px', textDecoration: 'none' }}>
+          Open PDF Directly / നേരിട്ട് തുറക്കുക
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} style={{ width: '100%', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '8px' }}>
+      {pages.map(pageNum => (
+        <canvas 
+          key={pageNum} 
+          id={`pdf-page-${pageNum}`} 
+          style={{ 
+            width: '100%', 
+            maxWidth: '100%', 
+            height: 'auto', 
+            borderRadius: '8px', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: '#ffffff'
+          }} 
+        />
+      ))}
+    </div>
+  );
+};
+
 const Home = ({ session }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -678,11 +818,7 @@ const Home = ({ session }) => {
                       overflow: 'hidden'
                     }}>
                       {activeTask.contentUrl.endsWith('.pdf') ? (
-                        <iframe 
-                          src={`${activeTask.contentUrl}#toolbar=0&navpanes=0&view=FitH`}
-                          style={{ width: '100%', height: '100%', borderRadius: '18px', border: 'none' }}
-                          title={activeTask.title}
-                        />
+                        <PDFViewer url={activeTask.contentUrl} />
                       ) : (
                         <img 
                           src={activeTask.contentUrl} 
