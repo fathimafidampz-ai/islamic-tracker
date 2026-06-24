@@ -33,8 +33,16 @@ const PDFPage = ({ pdf, pageNum, scale, containerWidth }) => {
 
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
+        
+        const dpr = window.devicePixelRatio || 1;
+        const dprScale = Math.min(dpr, 2.5); // Cap to 2.5 to save memory but guarantee retina clarity
+        
+        canvas.width = scaledViewport.width * dprScale;
+        canvas.height = scaledViewport.height * dprScale;
+
+        // Reset transform and scale the context
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.scale(dprScale, dprScale);
 
         if (renderTaskRef.current) {
           renderTaskRef.current.cancel();
