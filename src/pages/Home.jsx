@@ -541,15 +541,6 @@ const Home = ({ session }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTask.title}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {benefits && (
-                  <button 
-                    onClick={() => setShowBenefits(true)}
-                    className="glass-panel" 
-                    style={{ padding: '8px 16px', color: 'var(--primary)', border: '1px solid var(--primary)', cursor: 'pointer', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}
-                  >
-                    View Benefits / മഹത്വം
-                  </button>
-                )}
                 <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={28} /></button>
               </div>
             </div>
