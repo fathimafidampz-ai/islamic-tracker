@@ -2,15 +2,88 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateDailyTasks } from '../lib/worshipLogic';
 import { format } from 'date-fns';
-import { CheckCircle2, Circle, ChevronRight, X, RefreshCw, Plus, Bell } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronRight, X, RefreshCw, Plus, Bell, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sendNotification } from '../lib/notifications';
 import { getBenefitsForTask } from '../lib/benefitsData';
 
+const PDFPage = ({ pdf, pageNum, scale, containerWidth }) => {
+  const canvasRef = useRef(null);
+  const renderTaskRef = useRef(null);
+  const [aspectRatio, setAspectRatio] = useState(1.414);
+
+  useEffect(() => {
+    let active = true;
+
+    const renderPage = async () => {
+      try {
+        const page = await pdf.getPage(pageNum);
+        if (!active) return;
+        
+        const viewport = page.getViewport({ scale: 1.0 });
+        const ratio = viewport.height / viewport.width;
+        setAspectRatio(ratio);
+
+        if (!canvasRef.current) return;
+
+        const widthScale = containerWidth / viewport.width;
+        const finalScale = widthScale * scale;
+        const scaledViewport = page.getViewport({ scale: finalScale });
+
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        if (renderTaskRef.current) {
+          renderTaskRef.current.cancel();
+        }
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: scaledViewport
+        };
+
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+        await renderTask.promise;
+      } catch (err) {
+        if (err.name !== 'RenderingCancelledException') {
+          console.error(`Error rendering page ${pageNum}:`, err);
+        }
+      }
+    };
+
+    renderPage();
+
+    return () => {
+      active = false;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [pdf, pageNum, scale, containerWidth]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        width: `${containerWidth * scale}px`,
+        height: `${containerWidth * scale * aspectRatio}px`,
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        background: '#ffffff',
+        display: 'block'
+      }}
+    />
+  );
+};
+
 const PDFViewer = ({ url }) => {
-  const [pages, setPages] = useState([]);
+  const [pdf, setPdf] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [scale, setScale] = useState(1.0);
   const [containerWidth, setContainerWidth] = useState(350);
   const containerRef = useRef(null);
 
@@ -22,11 +95,11 @@ const PDFViewer = ({ url }) => {
         setLoading(true);
         setError(null);
         
-        // Ensure pdfjsLib is loaded
+        // Ensure pdfjsLib is loaded locally from the public folder
         if (!window.pdfjsLib) {
           await new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+            script.src = '/pdf.min.js';
             script.onload = resolve;
             script.onerror = () => reject(new Error("Failed to load PDF viewer library"));
             document.head.appendChild(script);
@@ -34,56 +107,15 @@ const PDFViewer = ({ url }) => {
         }
         
         const pdfjsLib = window.pdfjsLib;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
         
         const loadingTask = pdfjsLib.getDocument(url);
-        const pdf = await loadingTask.promise;
+        const loadedPdf = await loadingTask.promise;
         
         if (!active) return;
 
-        // Calculate container width immediately
-        const width = containerRef.current ? containerRef.current.clientWidth : 0;
-        const calculatedWidth = (width > 40) ? width - 16 : Math.min(window.innerWidth - 64, 500);
-        setContainerWidth(calculatedWidth);
-
-        const renderedPages = [];
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          renderedPages.push(pageNum);
-        }
-        setPages(renderedPages);
+        setPdf(loadedPdf);
         setLoading(false);
-        
-        // Render pages after setting pages array
-        setTimeout(async () => {
-          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            if (!active) break;
-            try {
-              const page = await pdf.getPage(pageNum);
-              const canvas = document.getElementById(`pdf-page-${pageNum}`);
-              if (canvas) {
-                const context = canvas.getContext('2d');
-                const viewport = page.getViewport({ scale: 1.5 });
-                const scale = calculatedWidth / viewport.width;
-                const scaledViewport = page.getViewport({ scale });
-                
-                canvas.width = scaledViewport.width;
-                canvas.height = scaledViewport.height;
-                
-                const renderContext = {
-                  canvasContext: context,
-                  viewport: scaledViewport
-                };
-                await page.render(renderContext).promise;
-              }
-            } catch (err) {
-              console.error(`Error rendering page ${pageNum}:`, err);
-            }
-          }
-          if (containerRef.current) {
-            containerRef.current.scrollTop = 0;
-          }
-        }, 100);
-
       } catch (err) {
         console.error("PDF Load Error:", err);
         if (active) {
@@ -100,11 +132,42 @@ const PDFViewer = ({ url }) => {
     };
   }, [url]);
 
+  // Adjust container width on mount and window resize
   useEffect(() => {
-    if (!loading && containerRef.current) {
-      containerRef.current.scrollTop = 0;
+    if (!pdf) return;
+    const handleResize = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.clientWidth;
+        const calculatedWidth = width > 40 ? width - 32 : Math.min(window.innerWidth - 64, 500);
+        setContainerWidth(calculatedWidth);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, [pdf]);
+
+  // Reset scroll position to top when PDF or scale changes
+  useEffect(() => {
+    if (pdf) {
+      const timers = [
+        setTimeout(() => {
+          if (containerRef.current) containerRef.current.scrollTop = 0;
+        }, 5),
+        setTimeout(() => {
+          if (containerRef.current) containerRef.current.scrollTop = 0;
+        }, 100),
+        setTimeout(() => {
+          if (containerRef.current) containerRef.current.scrollTop = 0;
+        }, 300)
+      ];
+      return () => timers.forEach(clearTimeout);
     }
-  }, [loading]);
+  }, [pdf, scale]);
+
+  const zoomIn = () => setScale(prev => Math.min(prev + 0.25, 3.0));
+  const zoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.5));
+  const resetZoom = () => setScale(1.0);
 
   if (loading) {
     return (
@@ -124,7 +187,7 @@ const PDFViewer = ({ url }) => {
             100% { transform: rotate(360deg); }
           }
         `}</style>
-        <p style={{ color: 'var(--text-muted)' }}>Loading PDF directly / ലോഡ് ചെയ്യുന്നു...</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading PDF / ലോഡ് ചെയ്യുന്നു...</p>
       </div>
     );
   }
@@ -141,20 +204,125 @@ const PDFViewer = ({ url }) => {
   }
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '8px' }}>
-      {pages.map(pageNum => (
-        <canvas 
-          key={pageNum} 
-          id={`pdf-page-${pageNum}`} 
-          style={{ 
-            width: `${containerWidth}px`, 
-            height: `${containerWidth * 1.41}px`, 
-            borderRadius: '8px', 
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            background: '#ffffff'
-          }} 
-        />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+      {/* Controls Bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 16px',
+        background: 'var(--bg-card)',
+        borderBottom: '1px solid var(--glass-border)',
+        gap: '12px',
+        flexShrink: 0
+      }}>
+        {/* Zoom Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            onClick={zoomOut}
+            disabled={scale <= 0.5}
+            style={{
+              background: 'var(--bg-darker)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-main)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              opacity: scale <= 0.5 ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Zoom Out"
+          >
+            <ZoomOut size={16} />
+          </button>
+          
+          <span 
+            onClick={resetZoom}
+            style={{ 
+              fontSize: '0.85rem', 
+              color: 'var(--text-main)', 
+              fontWeight: '600', 
+              minWidth: '45px', 
+              textAlign: 'center',
+              cursor: 'pointer'
+            }}
+            title="Reset Zoom"
+          >
+            {Math.round(scale * 100)}%
+          </span>
+
+          <button 
+            onClick={zoomIn}
+            disabled={scale >= 3.0}
+            style={{
+              background: 'var(--bg-darker)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-main)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              opacity: scale >= 3.0 ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Zoom In"
+          >
+            <ZoomIn size={16} />
+          </button>
+        </div>
+
+        {/* Download Button */}
+        <a 
+          href={url} 
+          download 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'var(--primary)',
+            color: '#ffffff',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            textDecoration: 'none',
+            cursor: 'pointer'
+          }}
+          title="Download PDF"
+        >
+          <Download size={16} /> Download
+        </a>
+      </div>
+
+      {/* Pages Container */}
+      <div 
+        ref={containerRef} 
+        style={{ 
+          flex: 1, 
+          overflow: 'auto', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: scale > 1.0 ? 'flex-start' : 'center', 
+          gap: '16px', 
+          padding: '16px',
+          background: 'var(--bg-darker)'
+        }}
+      >
+        {Array.from({ length: pdf ? pdf.numPages : 0 }, (_, i) => (
+          <PDFPage 
+            key={i + 1} 
+            pdf={pdf} 
+            pageNum={i + 1} 
+            scale={scale} 
+            containerWidth={containerWidth} 
+          />
+        ))}
+      </div>
     </div>
   );
 };
