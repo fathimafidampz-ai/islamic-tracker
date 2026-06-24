@@ -120,9 +120,7 @@ export const getBenefitsForTask = (taskId) => {
   if (taskId === 'tahajjud_subhanallah') {
     return {
       title: "Subhanallahi wa bihamdihi, Subhanallahil Azeem എന്ന ദിക്റിന്റെ മഹത്വം",
-      content: `"سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ، سُകْحَانَ اللّٰهِ الْعَظِيمِ"
-
-നബി ﷺ പറഞ്ഞു:
+      content: `നബി ﷺ പറഞ്ഞു:
 "നാവിന് ലഘുവും, തുലാസിൽ ഭാരമുള്ളതും, റഹ്മാനിന് പ്രിയങ്കരവുമായ രണ്ട് വാക്കുകൾ: 'Subhanallahi wa bihamdihi, Subhanallahil Azeem.'"
 (സഹീഹുൽ ബുഖാരി, സഹീഹ് മുസ്ലിം)
 
