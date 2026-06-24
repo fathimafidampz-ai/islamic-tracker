@@ -495,7 +495,16 @@ const Home = ({ session }) => {
           <motion.div 
             ref={modalRef}
             initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }}
-            style={{ position: 'fixed', inset: 0, background: 'var(--bg-darker)', zIndex: 100, display: 'flex', flexDirection: 'column', padding: '24px', overflowY: 'auto' }}
+            style={{ 
+              position: 'fixed', 
+              inset: 0, 
+              background: 'var(--bg-darker)', 
+              zIndex: 100, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              padding: '24px', 
+              overflowY: activeTask.type === 'content' ? 'hidden' : 'auto' 
+            }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTask.title}</h2>
@@ -569,10 +578,9 @@ const Home = ({ session }) => {
 
             {/* CONTENT UI */}
             {activeTask.type === 'content' && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ 
-                  width: '100%',
-                  minHeight: '560px',
+                  flex: 1, 
                   borderRadius: '24px', 
                   background: 'var(--bg-card)', 
                   border: '1px solid var(--glass-border)',
@@ -580,21 +588,21 @@ const Home = ({ session }) => {
                   flexDirection: 'column', 
                   alignItems: 'stretch', 
                   justifyContent: 'stretch',
-                  padding: '8px',
-                  textAlign: 'center',
-                  marginBottom: '24px'
+                  padding: '4px',
+                  marginBottom: '16px',
+                  overflow: 'hidden'
                 }}>
                   {activeTask.contentUrl.endsWith('.pdf') ? (
                     <iframe 
-                      src={`${activeTask.contentUrl}#toolbar=0`}
-                      style={{ width: '100%', height: '100%', minHeight: '550px', borderRadius: '16px', border: 'none' }}
+                      src={`${activeTask.contentUrl}#toolbar=0&navpanes=0&view=FitH`}
+                      style={{ width: '100%', height: '100%', borderRadius: '18px', border: 'none' }}
                       title={activeTask.title}
                     />
                   ) : (
                     <img 
                       src={activeTask.contentUrl} 
                       alt={activeTask.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '16px' }} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '18px' }} 
                     />
                   )}
                 </div>
