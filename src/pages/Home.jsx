@@ -564,15 +564,7 @@ const Home = ({ session }) => {
                   <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(Math.max(0, counterValue - 1))}><RefreshCw size={18} /> -1</button>
                   <button className="glass-panel" style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', cursor: 'pointer' }} onClick={() => updateCounterProgress(0)}>Reset</button>
                 </div>
-                
-                <button 
-                  onClick={submitModalTask}
-                  disabled={counterValue < activeTask.target}
-                  className="btn-primary" 
-                  style={{ marginTop: '40px', width: '100%', opacity: counterValue >= activeTask.target ? 1 : 0.5 }}
-                >
-                  {counterValue >= activeTask.target ? 'Complete Task' : 'Reach target to complete'}
-                </button>
+
               </div>
             )}
 
