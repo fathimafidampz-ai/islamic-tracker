@@ -472,16 +472,42 @@ const Home = ({ session }) => {
                     </span>
                   </div>
                   
-                  {task.type === 'counter' && !task.is_completed && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {task.count_reached || 0} / {task.target} <ChevronRight size={16} />
-                    </div>
-                  )}
-                  {task.type === 'content' && !task.is_completed && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Open <ChevronRight size={16} />
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {getBenefitsForTask(task.id) && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTask(task);
+                          setShowBenefits(true);
+                        }}
+                        style={{ 
+                          background: 'rgba(59, 130, 246, 0.1)', 
+                          border: '1px solid rgba(59, 130, 246, 0.3)', 
+                          color: 'var(--primary)', 
+                          padding: '4px 10px', 
+                          borderRadius: '12px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: '600', 
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        Benefits
+                      </button>
+                    )}
+                    
+                    {task.type === 'counter' && !task.is_completed && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {task.count_reached || 0} / {task.target} <ChevronRight size={16} />
+                      </div>
+                    )}
+                    {task.type === 'content' && !task.is_completed && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Open <ChevronRight size={16} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
