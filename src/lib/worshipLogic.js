@@ -13,7 +13,7 @@ export const generateDailyTasks = (date = new Date()) => {
     { id: 'dikr_allahuakbar', title: '33 × Allahu Akbar', points: 5, type: 'counter', target: 33 },
     { id: 'dikr_ayatulkursi', title: '1 × Ayatul Kursi', points: 10, type: 'counter', target: 1 },
     { id: 'dikr_lailaha', title: '10 × La ilaha illallah...', points: 10, type: 'counter', target: 10 },
-    { id: 'dikr_allahumma', title: '7 × Allahumma ajirni minan nar', points: 10, type: 'counter', target: 7 },
+    { id: 'dikr_allahumma', title: '7 × Allahumma ajirni minan nar', points: 10, type: 'counter', target: 7, imageUrl: '/allahumma_ajirni.png' },
     { id: 'dikr_ikhlas', title: '3 × Surah Ikhlas', points: 10, type: 'counter', target: 3 },
     { id: 'dikr_duha_surah', title: '4 × Surah Ad-Duha', points: 15, type: 'counter', target: 4, imageUrl: '/surah_duha.png' },
   ];

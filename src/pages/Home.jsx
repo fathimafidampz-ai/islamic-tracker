@@ -519,9 +519,9 @@ const Home = ({ session }) => {
                 {activeTask.imageUrl && (
                   <div style={{ 
                     width: '100%', 
-                    height: activeTask.id.includes('duha_surah') ? 'auto' : '180px', 
+                    height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '180px', 
                     maxHeight: activeTask.id.includes('duha_surah') ? '360px' : '180px',
-                    background: activeTask.id.includes('duha_surah') ? '#ffffff' : 'var(--bg-card)', 
+                    background: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '#ffffff' : 'var(--bg-card)', 
                     borderRadius: '16px', 
                     marginBottom: '30px', 
                     display: 'flex', 
@@ -529,14 +529,14 @@ const Home = ({ session }) => {
                     justifyContent: 'center', 
                     padding: '16px',
                     overflowY: activeTask.id.includes('duha_surah') ? 'auto' : 'hidden',
-                    border: activeTask.id.includes('duha_surah') ? '2px solid var(--primary)' : '1px solid var(--glass-border)'
+                    border: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? '2px solid var(--primary)' : '1px solid var(--glass-border)'
                   }}>
                     <img 
                       src={activeTask.imageUrl} 
                       alt={activeTask.title} 
                       style={{ 
                         width: '100%', 
-                        height: activeTask.id.includes('duha_surah') ? 'auto' : '100%', 
+                        height: (activeTask.id.includes('duha_surah') || activeTask.id.includes('allahumma')) ? 'auto' : '100%', 
                         objectFit: 'contain' 
                       }} 
                     />
