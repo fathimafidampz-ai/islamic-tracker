@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { CheckCircle2, Circle, ChevronRight, X, RefreshCw, Plus, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sendNotification } from '../lib/notifications';
+import { getBenefitsForTask } from '../lib/benefitsData';
 
 const Home = ({ session }) => {
   const [tasks, setTasks] = useState([]);
@@ -17,10 +18,12 @@ const Home = ({ session }) => {
   // Modal State
   const [activeTask, setActiveTask] = useState(null);
   const [counterValue, setCounterValue] = useState(0);
+  const [showBenefits, setShowBenefits] = useState(false);
   const modalRef = useRef(null);
 
   // Reset modal scroll to top when activeTask changes
   useEffect(() => {
+    setShowBenefits(false);
     if (activeTask) {
       const timer = setTimeout(() => {
         if (modalRef.current) {
@@ -51,6 +54,7 @@ const Home = ({ session }) => {
   };
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const benefits = activeTask ? getBenefitsForTask(activeTask.id) : null;
 
   // Auto-complete counter when target is reached
   useEffect(() => {
@@ -297,14 +301,15 @@ const Home = ({ session }) => {
       return;
     }
 
-    if (task.type === 'checkbox') {
-      toggleTask(task);
-    } else if (task.type === 'content') {
-      window.open(task.contentUrl, '_blank');
-      toggleTask(task, true);
-    } else {
+    const hasBenefits = getBenefitsForTask(task.id);
+
+    if (task.type === 'counter' || task.type === 'content' || hasBenefits) {
       setActiveTask(task);
-      setCounterValue(task.count_reached || 0);
+      if (task.type === 'counter') {
+        setCounterValue(task.count_reached || 0);
+      }
+    } else {
+      toggleTask(task);
     }
   };
 
@@ -493,8 +498,19 @@ const Home = ({ session }) => {
             style={{ position: 'fixed', inset: 0, background: 'var(--bg-darker)', zIndex: 100, display: 'flex', flexDirection: 'column', padding: '24px', overflowY: 'auto' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)' }}>{activeTask.title}</h2>
-              <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer' }}><X size={28} /></button>
+              <h2 style={{ fontSize: '1.5rem', color: 'var(--text-main)', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTask.title}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {benefits && (
+                  <button 
+                    onClick={() => setShowBenefits(true)}
+                    className="glass-panel" 
+                    style={{ padding: '8px 16px', color: 'var(--primary)', border: '1px solid var(--primary)', cursor: 'pointer', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold' }}
+                  >
+                    View Benefits / മഹത്വം
+                  </button>
+                )}
+                <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={28} /></button>
+              </div>
             </div>
 
             {/* COUNTER UI */}
@@ -620,6 +636,84 @@ const Home = ({ session }) => {
                 </button>
               </div>
             )}
+
+            {/* CHECKBOX UI */}
+            {activeTask.type === 'checkbox' && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+                <div 
+                  onClick={() => {
+                    toggleTask(activeTask);
+                    setActiveTask(null);
+                  }}
+                  style={{ cursor: 'pointer', marginBottom: '30px', transition: 'transform 0.2s' }}
+                >
+                  {activeTask.is_completed ? (
+                    <CheckCircle2 color="var(--primary)" size={120} />
+                  ) : (
+                    <Circle color="var(--text-muted)" size={120} />
+                  )}
+                </div>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '10px', color: 'var(--text-main)' }}>
+                  {activeTask.is_completed ? 'Completed' : 'Mark as Completed'}
+                </h3>
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '40px' }}>
+                  {activeTask.is_completed 
+                    ? 'Alhamdulillah, you have completed this worship task today.' 
+                    : 'Tap the circle above to mark this task as completed.'}
+                </p>
+                
+                <button 
+                  onClick={() => {
+                    if (!activeTask.is_completed) {
+                      toggleTask(activeTask, true);
+                    }
+                    setActiveTask(null);
+                  }}
+                  className="btn-primary" 
+                  style={{ width: '100%' }}
+                >
+                  {activeTask.is_completed ? 'Close' : 'Complete Task'}
+                </button>
+              </div>
+            )}
+
+            {/* BENEFITS OVERLAY */}
+            <AnimatePresence>
+              {showBenefits && benefits && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  style={{ 
+                    position: 'absolute', 
+                    inset: 0, 
+                    background: '#ffffff', 
+                    color: '#000000', 
+                    zIndex: 110, 
+                    padding: '24px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{benefits.title}</h3>
+                    <button 
+                      onClick={() => setShowBenefits(false)} 
+                      style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
+                    >
+                      Close / മടങ്ങുക
+                    </button>
+                  </div>
+                  
+                  {/* Content */}
+                  <div style={{ flex: 1, fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: '#1f2937', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                    {benefits.content}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
