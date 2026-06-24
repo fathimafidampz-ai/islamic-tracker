@@ -21,19 +21,27 @@ const Home = ({ session }) => {
   const [showBenefits, setShowBenefits] = useState(false);
   const modalRef = useRef(null);
 
-  // Reset modal scroll to top when activeTask changes
+  // Reset modal scroll to top and lock body scroll when activeTask or showBenefits changes
   useEffect(() => {
     if (activeTask) {
+      document.body.style.overflow = 'hidden';
       const timer = setTimeout(() => {
         if (modalRef.current) {
           modalRef.current.scrollTop = 0;
         }
+        window.scrollTo(0, 0);
       }, 50);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
     } else {
+      document.body.style.overflow = 'unset';
       setShowBenefits(false);
     }
-  }, [activeTask]);
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [activeTask, showBenefits]);
   const [showNotifBanner, setShowNotifBanner] = useState(() => {
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted' || Notification.permission === 'denied') return false;
