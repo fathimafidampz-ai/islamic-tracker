@@ -15,6 +15,7 @@ export const generateDailyTasks = (date = new Date()) => {
     { id: 'dikr_lailaha', title: '10 × La ilaha illallah...', points: 10, type: 'checkbox' },
     { id: 'dikr_allahumma', title: '7 × Allahumma ajirni minan nar', points: 10, type: 'checkbox' },
     { id: 'dikr_ikhlas', title: '3 × Surah Ikhlas', points: 10, type: 'checkbox' },
+    { id: 'dikr_duha_surah', title: '4 × Surah Ad-Duha', points: 15, type: 'counter', target: 4, imageUrl: '/surah_duha.png' },
   ];
 
   // --- TAHAJJUD ---

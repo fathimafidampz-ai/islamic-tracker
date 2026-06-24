@@ -43,7 +43,7 @@ const BottomNav = ({ session }) => {
       const fardKey = `${p}_fard`;
       if (cachedData[fardKey] && cachedData[fardKey].is_completed) {
         const completedDikrs = Object.keys(cachedData).filter(k => k.startsWith(`${p}_dikr_`) && cachedData[k].is_completed);
-        if (completedDikrs.length < 7) {
+        if (completedDikrs.length < 8) {
           return true; // Missing some dikrs!
         }
       }

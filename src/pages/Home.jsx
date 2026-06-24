@@ -487,11 +487,28 @@ const Home = ({ session }) => {
             {activeTask.type === 'counter' && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {activeTask.imageUrl && (
-                  <div style={{ width: '100%', height: '180px', background: 'var(--bg-card)', borderRadius: '16px', marginBottom: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    height: activeTask.id.includes('duha_surah') ? 'auto' : '180px', 
+                    maxHeight: activeTask.id.includes('duha_surah') ? '360px' : '180px',
+                    background: activeTask.id.includes('duha_surah') ? '#ffffff' : 'var(--bg-card)', 
+                    borderRadius: '16px', 
+                    marginBottom: '30px', 
+                    display: 'flex', 
+                    alignItems: activeTask.id.includes('duha_surah') ? 'flex-start' : 'center', 
+                    justifyContent: 'center', 
+                    padding: '16px',
+                    overflowY: activeTask.id.includes('duha_surah') ? 'auto' : 'hidden',
+                    border: activeTask.id.includes('duha_surah') ? '2px solid var(--primary)' : '1px solid var(--glass-border)'
+                  }}>
                     <img 
                       src={activeTask.imageUrl} 
                       alt={activeTask.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                      style={{ 
+                        width: '100%', 
+                        height: activeTask.id.includes('duha_surah') ? 'auto' : '100%', 
+                        objectFit: 'contain' 
+                      }} 
                     />
                   </div>
                 )}

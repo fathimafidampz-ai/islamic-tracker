@@ -76,7 +76,7 @@ const checkAndSendNotifications = (session) => {
     
     if (categoryName === 'Tahajjud') return !completedKeys.some(k => k.includes('tahajjud'));
     if (categoryName === 'Fajr') return !completedKeys.some(k => k.includes('fajr'));
-    if (categoryName === 'Duha') return !completedKeys.some(k => k.includes('duha'));
+    if (categoryName === 'Duha') return !completedKeys.some(k => k === 'duha');
     if (categoryName === 'Dhuhr') return !completedKeys.some(k => k.includes('dhuhr'));
     if (categoryName === 'Asr') return !completedKeys.some(k => k.includes('asr'));
     if (categoryName === 'Maghrib') return !completedKeys.some(k => k.includes('maghrib'));
