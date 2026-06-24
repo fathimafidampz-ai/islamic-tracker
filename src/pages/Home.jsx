@@ -21,10 +21,9 @@ const Home = ({ session }) => {
   const [showBenefits, setShowBenefits] = useState(false);
   const modalRef = useRef(null);
 
-  // Reset modal scroll to top and lock body scroll when activeTask or showBenefits changes
+  // Reset modal scroll to top when activeTask or showBenefits changes
   useEffect(() => {
     if (activeTask) {
-      document.body.style.overflow = 'hidden';
       const timer = setTimeout(() => {
         if (modalRef.current) {
           modalRef.current.scrollTop = 0;
@@ -35,12 +34,8 @@ const Home = ({ session }) => {
         clearTimeout(timer);
       };
     } else {
-      document.body.style.overflow = 'unset';
       setShowBenefits(false);
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [activeTask, showBenefits]);
   const [showNotifBanner, setShowNotifBanner] = useState(() => {
     if (!('Notification' in window)) return false;
