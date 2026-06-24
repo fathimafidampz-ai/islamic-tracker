@@ -543,7 +543,8 @@ const Home = ({ session }) => {
               display: 'flex', 
               flexDirection: 'column', 
               padding: '24px', 
-              overflowY: (activeTask.type === 'content' && !showBenefits) ? 'hidden' : 'auto' 
+              overflowY: (activeTask.type === 'content' && !showBenefits) ? 'hidden' : 'auto',
+              WebkitOverflowScrolling: 'touch'
             }}
           >
             {showBenefits && benefits ? (
@@ -563,7 +564,15 @@ const Home = ({ session }) => {
                 </div>
                 
                 {/* Content */}
-                <div style={{ flex: 1, fontSize: '1.05rem', lineHeight: '1.7', whiteSpace: 'pre-wrap', color: '#1f2937', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                <div style={{ 
+                  flex: 1, 
+                  fontSize: '1.05rem', 
+                  lineHeight: '1.7', 
+                  whiteSpace: 'pre-wrap', 
+                  color: '#1f2937', 
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  paddingBottom: '120px'
+                }}>
                   {benefits.content}
                 </div>
 
@@ -585,7 +594,8 @@ const Home = ({ session }) => {
                       borderRadius: '12px',
                       fontSize: '1rem',
                       fontWeight: 'bold',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      marginBottom: '40px'
                     }}
                   >
                     Mark as Completed / പൂർത്തിയാക്കുക
@@ -603,7 +613,7 @@ const Home = ({ session }) => {
 
                 {/* COUNTER UI */}
                 {activeTask.type === 'counter' && (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '60px' }}>
                     {activeTask.imageUrl && (
                       <div style={{ 
                         width: '100%', 
