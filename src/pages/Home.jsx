@@ -162,25 +162,27 @@ const Home = ({ session }) => {
       setIsOffline(false);
 
       if (tasksToSync.length > 0) {
-        supabase.from('task_completions')
-          .upsert(tasksToSync, { onConflict: 'worship_record_id, task_id' })
-          .then(() => {
-            console.log(`Synced ${tasksToSync.length} cache tasks to DB`);
-            broadcastUpdate();
-          })
-          .catch(err => console.error("Error syncing cache tasks to DB:", err));
+        const { error: syncError } = await supabase.from('task_completions')
+          .upsert(tasksToSync, { onConflict: 'worship_record_id, task_id' });
+        if (syncError) {
+          console.error("Error syncing cache tasks to DB:", syncError);
+        } else {
+          console.log(`Synced ${tasksToSync.length} cache tasks to DB`);
+          broadcastUpdate();
+        }
       }
 
       if (tasksToDelete.length > 0) {
-        supabase.from('task_completions')
+        const { error: deleteError } = await supabase.from('task_completions')
           .delete()
           .eq('worship_record_id', record.id)
-          .in('task_id', tasksToDelete)
-          .then(() => {
-            console.log(`Deleted ${tasksToDelete.length} tasks from DB`);
-            broadcastUpdate();
-          })
-          .catch(err => console.error("Error deleting tasks from DB:", err));
+          .in('task_id', tasksToDelete);
+        if (deleteError) {
+          console.error("Error deleting tasks from DB:", deleteError);
+        } else {
+          console.log(`Deleted ${tasksToDelete.length} tasks from DB`);
+          broadcastUpdate();
+        }
       }
     } catch (err) {
       console.error("DB Error:", err);
@@ -234,11 +236,15 @@ const Home = ({ session }) => {
 
   const broadcastUpdate = () => {
     if (broadcastChannel) {
-      broadcastChannel.send({
-        type: 'broadcast',
-        event: 'task_update',
-        payload: {}
-      }).catch(console.error);
+      try {
+        broadcastChannel.send({
+          type: 'broadcast',
+          event: 'task_update',
+          payload: {}
+        });
+      } catch (err) {
+        console.error("Broadcast error:", err);
+      }
     }
   };
 
@@ -279,21 +285,26 @@ const Home = ({ session }) => {
 
     if (recordId) {
       if (newVal) {
-        await supabase.from('task_completions').upsert({
+        const { error } = await supabase.from('task_completions').upsert({
           worship_record_id: recordId,
           task_id: task.id,
           is_completed: newVal,
           count_reached: currentCount,
           completed_at: new Date().toISOString()
-        }, { onConflict: 'worship_record_id, task_id' }).catch(err => {
-          console.error("UPSERT ERROR:", err);
-          alert("DB Error: " + err.message);
-        });
+        }, { onConflict: 'worship_record_id, task_id' });
+        
+        if (error) {
+          console.error("UPSERT ERROR:", error);
+          alert("DB Error: " + error.message);
+        }
       } else {
-        await supabase.from('task_completions').delete()
+        const { error } = await supabase.from('task_completions').delete()
           .eq('worship_record_id', recordId)
-          .eq('task_id', task.id)
-          .catch(err => console.error("DELETE ERROR:", err));
+          .eq('task_id', task.id);
+          
+        if (error) {
+          console.error("DELETE ERROR:", error);
+        }
       }
       broadcastUpdate();
     }
