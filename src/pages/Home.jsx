@@ -11,6 +11,7 @@ const PDFViewer = ({ url }) => {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [containerWidth, setContainerWidth] = useState(350);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -40,6 +41,11 @@ const PDFViewer = ({ url }) => {
         
         if (!active) return;
 
+        // Calculate container width immediately
+        const width = containerRef.current ? containerRef.current.clientWidth : 0;
+        const calculatedWidth = (width > 40) ? width - 16 : Math.min(window.innerWidth - 64, 500);
+        setContainerWidth(calculatedWidth);
+
         const renderedPages = [];
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           renderedPages.push(pageNum);
@@ -56,14 +62,12 @@ const PDFViewer = ({ url }) => {
               const canvas = document.getElementById(`pdf-page-${pageNum}`);
               if (canvas) {
                 const context = canvas.getContext('2d');
-                // Calculate scale based on container width
                 const viewport = page.getViewport({ scale: 1.5 });
-                const containerWidth = containerRef.current ? containerRef.current.clientWidth - 16 : 350;
-                const scale = containerWidth / viewport.width;
+                const scale = calculatedWidth / viewport.width;
                 const scaledViewport = page.getViewport({ scale });
                 
-                canvas.height = scaledViewport.height;
                 canvas.width = scaledViewport.width;
+                canvas.height = scaledViewport.height;
                 
                 const renderContext = {
                   canvasContext: context,
@@ -74,6 +78,9 @@ const PDFViewer = ({ url }) => {
             } catch (err) {
               console.error(`Error rendering page ${pageNum}:`, err);
             }
+          }
+          if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
           }
         }, 100);
 
@@ -92,6 +99,12 @@ const PDFViewer = ({ url }) => {
       active = false;
     };
   }, [url]);
+
+  useEffect(() => {
+    if (!loading && containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [loading]);
 
   if (loading) {
     return (
@@ -134,9 +147,8 @@ const PDFViewer = ({ url }) => {
           key={pageNum} 
           id={`pdf-page-${pageNum}`} 
           style={{ 
-            width: '100%', 
-            maxWidth: '100%', 
-            height: 'auto', 
+            width: `${containerWidth}px`, 
+            height: `${containerWidth * 1.41}px`, 
             borderRadius: '8px', 
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             background: '#ffffff'
