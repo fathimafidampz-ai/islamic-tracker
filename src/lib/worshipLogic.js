@@ -53,7 +53,7 @@ export const generateDailyTasks = (date = new Date()) => {
 
   // --- RECITATION ---
   if (isFriday) {
-    tasks.push({ id: 'rec_kahf', category: 'Recitation', title: 'Surah Kahf', points: 15, type: 'checkbox' });
+    tasks.push({ id: 'rec_kahf', category: 'Recitation', title: 'Surah Kahf', points: 15, type: 'content', contentUrl: '/surah_kahf.pdf' });
   } else {
     tasks.push({ id: 'rec_yaseen', category: 'Recitation', title: 'Surah Yaseen', points: 15, type: 'content', contentUrl: '/surah_yaseen.pdf' });
   }
