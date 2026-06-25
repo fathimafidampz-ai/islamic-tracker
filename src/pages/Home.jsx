@@ -820,7 +820,7 @@ const Home = ({ session }) => {
                     </span>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {getBenefitsForTask(task.id) && (
                       <button 
                         onClick={(e) => {
@@ -846,13 +846,37 @@ const Home = ({ session }) => {
                     )}
                     
                     {task.type === 'counter' && !task.is_completed && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {task.count_reached || 0} / {task.target} <ChevronRight size={16} />
+                      <div style={{ 
+                        background: 'rgba(59, 130, 246, 0.1)', 
+                        border: '1px solid rgba(59, 130, 246, 0.3)', 
+                        color: 'var(--primary)', 
+                        padding: '4px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.75rem', 
+                        fontWeight: '600', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {task.count_reached || 0}/{task.target} <ChevronRight size={14} />
                       </div>
                     )}
                     {task.type === 'content' && !task.is_completed && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        Open <ChevronRight size={16} />
+                      <div style={{ 
+                        background: 'rgba(59, 130, 246, 0.1)', 
+                        border: '1px solid rgba(59, 130, 246, 0.3)', 
+                        color: 'var(--primary)', 
+                        padding: '4px 10px', 
+                        borderRadius: '12px', 
+                        fontSize: '0.75rem', 
+                        fontWeight: '600', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Open <ChevronRight size={14} />
                       </div>
                     )}
                   </div>
@@ -887,15 +911,25 @@ const Home = ({ session }) => {
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #e5e7eb', paddingBottom: '16px' }}>
                     <h3 style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{benefits.title}</h3>
-                    <button 
-                      onClick={() => {
-                        setShowBenefits(false);
-                        setActiveTask(null);
-                      }} 
-                      style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
-                    >
-                      Close / മടങ്ങുക
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {(activeTask.type === 'content' || activeTask.type === 'counter') && (
+                        <button 
+                          onClick={() => setShowBenefits(false)}
+                          style={{ background: 'var(--primary)', border: 'none', color: '#ffffff', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
+                        >
+                          {activeTask.type === 'content' ? 'Open PDF' : 'Open Counter'}
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => {
+                          setShowBenefits(false);
+                          setActiveTask(null);
+                        }} 
+                        style={{ background: '#f3f4f6', border: 'none', color: '#374151', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
+                      >
+                        Close / മടങ്ങുക
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Content */}
@@ -949,8 +983,25 @@ const Home = ({ session }) => {
                     background: activeTask.type === 'content' ? 'var(--bg-card)' : 'transparent',
                     flexShrink: 0
                   }}>
-                    <h2 style={{ fontSize: activeTask.type === 'content' ? '1.25rem' : '1.5rem', color: 'var(--text-main)', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{activeTask.title}</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h2 style={{ fontSize: activeTask.type === 'content' ? '1.25rem' : '1.5rem', color: 'var(--text-main)', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{activeTask.title}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getBenefitsForTask(activeTask.id) && (
+                        <button 
+                          onClick={() => setShowBenefits(true)}
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.1)', 
+                            border: '1px solid rgba(59, 130, 246, 0.3)', 
+                            color: 'var(--primary)', 
+                            padding: '6px 12px', 
+                            borderRadius: '12px', 
+                            fontSize: '0.8rem', 
+                            fontWeight: '600', 
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Benefits
+                        </button>
+                      )}
                       <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', color: 'var(--text-main)', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={activeTask.type === 'content' ? 24 : 28} /></button>
                     </div>
                   </div>
