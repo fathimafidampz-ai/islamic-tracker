@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Clock, Trash2, X, Briefcase, BookOpen, Dumbbell, Moon, User, Edit2 } from 'lucide-react';
+import { Plus, Clock, Trash2, X, Briefcase, BookOpen, Dumbbell, Moon, User, Edit2, Utensils } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const CATEGORIES = [
@@ -8,6 +8,7 @@ const CATEGORIES = [
   { id: 'Fitness', icon: Dumbbell, color: '#f59e0b' },
   { id: 'Worship', icon: Moon, color: '#8b5cf6' },
   { id: 'Personal', icon: User, color: '#ec4899' },
+  { id: 'Food', icon: Utensils, color: '#ef4444' },
 ];
 
 const Routines = ({ session }) => {
