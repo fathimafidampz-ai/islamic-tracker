@@ -44,8 +44,33 @@ const Notes = ({ session }) => {
           .order('created_at', { ascending: false });
           
         if (error) throw error;
-        setNotes(data || []);
-        localStorage.setItem(cacheKey, JSON.stringify(data));
+        
+        let mergedNotes = [...(data || [])];
+        const dbIds = new Set(mergedNotes.map(n => n.id));
+        const unsyncedNotes = cachedNotes.filter(n => !dbIds.has(n.id));
+
+        if (unsyncedNotes.length > 0) {
+          console.log(`Syncing ${unsyncedNotes.length} unsynced notes to DB...`);
+          const upserts = unsyncedNotes.map(n => ({
+            id: n.id,
+            user_id: userId,
+            title: n.title,
+            content: n.content,
+            color: n.color,
+            is_pinned: n.is_pinned,
+            created_at: n.created_at
+          }));
+          const { error: syncError } = await supabase.from('notes').upsert(upserts);
+          if (!syncError) {
+            mergedNotes = [...upserts, ...mergedNotes];
+          } else {
+            console.error("Failed to sync offline notes:", syncError);
+          }
+        }
+
+        const sortedMerged = mergedNotes.sort((a, b) => b.is_pinned - a.is_pinned);
+        setNotes(sortedMerged);
+        localStorage.setItem(cacheKey, JSON.stringify(sortedMerged));
       } else {
         setNotes(cachedNotes.sort((a,b) => b.is_pinned - a.is_pinned));
       }
@@ -110,7 +135,13 @@ const Notes = ({ session }) => {
         } else {
           const noteObj = updatedNotes[0];
           await supabase.from('notes').insert({
-            user_id: session.user.id, title: formTitle, content: formContent, color: noteObj.color
+            id: noteObj.id,
+            user_id: session.user.id,
+            title: formTitle,
+            content: formContent,
+            color: noteObj.color,
+            is_pinned: noteObj.is_pinned,
+            created_at: noteObj.created_at
           });
         }
       } catch (err) {

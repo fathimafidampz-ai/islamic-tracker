@@ -53,10 +53,39 @@ const Routines = ({ session }) => {
       if (session?.user?.id && session.user.id !== '00000000-0000-0000-0000-000000000000') {
         const { data, error } = await supabase
           .from('routines')
-          .select('*, routine_items(count)');
+          .select('*');
           
         if (error) throw error;
-        const sortedData = sortRoutines(data || []);
+        
+        let mergedRoutines = (data || []).map(r => ({
+          ...r,
+          routine_items: [{ count: 0 }]
+        }));
+
+        const dbIds = new Set(mergedRoutines.map(r => r.id));
+        const unsyncedRoutines = cachedRoutines.filter(r => !dbIds.has(r.id));
+
+        if (unsyncedRoutines.length > 0) {
+          console.log(`Syncing ${unsyncedRoutines.length} unsynced routines to DB...`);
+          const upserts = unsyncedRoutines.map(r => ({
+            id: r.id,
+            user_id: userId,
+            title: r.title,
+            category: r.category,
+            start_time: r.start_time,
+            end_time: r.end_time,
+            color: r.color,
+            created_at: r.created_at
+          }));
+          const { error: syncError } = await supabase.from('routines').upsert(upserts);
+          if (!syncError) {
+            mergedRoutines = [...unsyncedRoutines, ...mergedRoutines];
+          } else {
+            console.error("Failed to sync offline routines:", syncError);
+          }
+        }
+
+        const sortedData = sortRoutines(mergedRoutines);
         setRoutines(sortedData);
         localStorage.setItem(cacheKey, JSON.stringify(sortedData));
       } else {
@@ -131,11 +160,23 @@ const Routines = ({ session }) => {
       try {
         if (editingId) {
           await supabase.from('routines').update({
-            title: formTitle, color: catObj.color
+            title: formTitle,
+            category: formCategory,
+            start_time: formStartTime,
+            end_time: formEndTime,
+            color: catObj.color
           }).eq('id', editingId);
         } else {
+          const newRoutineObj = updatedRoutines.find(r => r.title === formTitle && r.category === formCategory);
           await supabase.from('routines').insert({
-            user_id: session.user.id, title: formTitle, color: catObj.color
+            id: newRoutineObj ? newRoutineObj.id : crypto.randomUUID(),
+            user_id: session.user.id,
+            title: formTitle,
+            category: formCategory,
+            start_time: formStartTime,
+            end_time: formEndTime,
+            color: catObj.color,
+            created_at: newRoutineObj ? newRoutineObj.created_at : new Date().toISOString()
           });
         }
       } catch (err) {
