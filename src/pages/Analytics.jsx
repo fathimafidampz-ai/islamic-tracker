@@ -38,6 +38,7 @@ const Analytics = ({ session }) => {
   const [detailedDay, setDetailedDay] = useState(null); // Full day object for the detailed checklist modal
   const [triggerRender, setTriggerRender] = useState(0); 
   const [visibleCount, setVisibleCount] = useState(10);
+  const [timeRange, setTimeRange] = useState('7'); // '7', '30', '90', 'all'
   const [isOffline, setIsOffline] = useState(() => {
     return !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
   });
@@ -269,6 +270,8 @@ const Analytics = ({ session }) => {
     setTriggerRender(prev => prev + 1); // Trigger full recalculation
   };
 
+  const filteredData = timeRange === 'all' ? data : data.slice(-Number(timeRange));
+
   return (
     <div className="page-container animate-in">
       {isOffline && (
@@ -310,13 +313,42 @@ const Analytics = ({ session }) => {
 
       {/* Chart */}
       <div className="glass-panel" style={{ padding: '20px', height: '300px', marginBottom: '30px', display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '20px', color: 'var(--text-muted)' }}>Progress Over Time (Since Started)</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ fontSize: '1.1rem', color: 'var(--text-muted)', margin: 0 }}>Progress Over Time</h3>
+          <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', padding: '3px', border: '1px solid var(--glass-border)' }}>
+            {[
+              { label: '7D', value: '7' },
+              { label: '30D', value: '30' },
+              { label: '90D', value: '90' },
+              { label: 'All', value: 'all' }
+            ].map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setTimeRange(tab.value)}
+                style={{
+                  background: timeRange === tab.value ? 'var(--primary)' : 'transparent',
+                  color: timeRange === tab.value ? '#ffffff' : 'var(--text-muted)',
+                  border: 'none',
+                  borderRadius: '7px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: timeRange === tab.value ? '0 2px 8px var(--primary-glow)' : 'none'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {loading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading...</div>
         ) : (
           <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <LineChart data={filteredData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                 <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
