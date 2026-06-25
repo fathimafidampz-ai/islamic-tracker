@@ -33,7 +33,7 @@ const parseLocalDate = (dateStr) => {
 const Analytics = ({ session }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ avgScore: 0, currentStreak: 0, totalPoints: 0 });
+  const [stats, setStats] = useState({ todayScore: 0, currentStreak: 0, totalPoints: 0 });
   const [selectedDay, setSelectedDay] = useState(null); // Used for displaying the round charts below the graph
   const [detailedDay, setDetailedDay] = useState(null); // Full day object for the detailed checklist modal
   const [triggerRender, setTriggerRender] = useState(0); 
@@ -190,8 +190,12 @@ const Analytics = ({ session }) => {
         };
       });
 
+      const todayDateStr = format(new Date(), 'yyyy-MM-dd');
+      const todayData = chartData.find(d => d.fullDate === todayDateStr);
+      const todayScore = todayData ? todayData.score : 0;
+
       setStats({
-        avgScore: Math.round(scoreSum / daysDiff),
+        todayScore,
         currentStreak,
         totalPoints
       });
@@ -301,8 +305,8 @@ const Analytics = ({ session }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '30px' }}>
         <div className="glass-panel" style={{ padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Target size={24} color="var(--primary)" style={{ marginBottom: '8px' }} />
-          <h2 style={{ fontSize: '1.4rem' }}>{stats.avgScore}%</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Avg Score</p>
+          <h2 style={{ fontSize: '1.4rem' }}>{stats.todayScore}%</h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Today's Progress</p>
         </div>
         <div className="glass-panel" style={{ padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Trophy size={24} color="#10b981" style={{ marginBottom: '8px' }} />
