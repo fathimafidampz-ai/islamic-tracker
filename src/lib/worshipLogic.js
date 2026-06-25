@@ -59,12 +59,14 @@ export const generateDailyTasks = (date = new Date()) => {
   }
 
   if (isThursday) {
-    tasks.push({ id: 'rec_hadhad', category: 'Recitation', title: 'Hadhad', points: 15, type: 'content', contentUrl: 'https://images.unsplash.com/photo-1579294215886-ccebc8c3fa24?auto=format&fit=crop&w=800&q=80' });
+    tasks.push({ id: 'rec_haddad', category: 'Recitation', title: 'Haddad', points: 15, type: 'content', contentUrl: '/haddad.pdf' });
   }
 
   tasks.push({ id: 'rec_mulk', category: 'Recitation', title: 'Surah Mulk', points: 15, type: 'content', contentUrl: '/surah_mulk.pdf' });
   tasks.push({ id: 'rec_waqiah', category: 'Recitation', title: 'Surah Waqiah', points: 15, type: 'content', contentUrl: '/surah_waqiah.pdf' });
-  tasks.push({ id: 'rec_asmaul_badr', category: 'Recitation', title: 'Asmaul Badr', points: 15, type: 'content', contentUrl: '/asmaulbadr.pdf' });
+  if (!isThursday) {
+    tasks.push({ id: 'rec_asmaul_badr', category: 'Recitation', title: 'Asmaul Badr', points: 15, type: 'content', contentUrl: '/asmaulbadr.pdf' });
+  }
 
   return tasks;
 };

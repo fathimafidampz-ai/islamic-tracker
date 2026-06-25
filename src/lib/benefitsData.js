@@ -334,7 +334,7 @@ export const getBenefitsForTask = (taskId) => {
     };
   }
 
-  if (taskId === 'rec_hadhad') {
+  if (taskId === 'rec_haddad') {
     return {
       title: "ഹദ്ദാദ് റാത്തീബ് (Ratib Al-Haddad) ചൊല്ലുന്നതിന്റെ മഹത്വം",
       content: `ഇമാം അബ്ദുല്ലാഹ് അൽ-ഹദ്ദാദ് (റഹ്) സമാഹരിച്ച ദിക്റുകളുടെയും ദുആകളുടെയും സമാഹാരമാണ് ഹദ്ദാദ് റാത്തീബ്.
