@@ -192,7 +192,7 @@ const Routines = ({ session }) => {
 
           <div>
             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Category</label>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+            <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
               {CATEGORIES.map(cat => {
                 const isSelected = formCategory === cat.id;
                 const Icon = cat.icon;
