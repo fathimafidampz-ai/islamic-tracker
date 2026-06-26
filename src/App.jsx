@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon, AlertCircle, Shield } from 'lucide-react';
+import { Moon, CheckSquare, Calendar, PieChart, Users, Settings as SettingsIcon, AlertCircle, Shield, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from './lib/supabase';
 import Auth from './pages/Auth';
 import { startNotificationService, stopNotificationService } from './lib/notifications';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import Home from './pages/Home';
 import Routines from './pages/Routines';
@@ -112,6 +113,22 @@ function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      console.log('SW registered:', r);
+    },
+    onRegisterError(error) {
+      console.error('SW registration error:', error);
+    }
+  });
+
+  const closePrompt = () => {
+    setNeedRefresh(false);
+  };
+
   useEffect(() => {
     // Initialize theme
     const savedTheme = localStorage.getItem('noor_theme') || 'light';
@@ -202,6 +219,71 @@ function App() {
           <Route path="/admin" element={<Admin session={session} />} />
         </Routes>
         <BottomNav session={session} />
+
+        {/* Beautiful Floating Update Available Notification */}
+        {needRefresh && (
+          <div 
+            className="glass-panel animate-in" 
+            style={{
+              position: 'fixed',
+              top: '24px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              padding: '12px 20px',
+              borderRadius: '16px',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              background: 'rgba(2, 6, 23, 0.95)',
+              boxShadow: '0 8px 32px rgba(59, 130, 246, 0.25)',
+              width: '90%',
+              maxWidth: '450px',
+              color: 'var(--text-main)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Moon size={20} color="var(--primary)" />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <p style={{ fontWeight: '600', fontSize: '0.95rem', margin: 0 }}>Update Available</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>New features are ready. Reload to apply!</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                onClick={() => updateServiceWorker(true)}
+                className="btn-primary" 
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 'bold',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Update
+              </button>
+              <button 
+                onClick={closePrompt}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Router>
   );
