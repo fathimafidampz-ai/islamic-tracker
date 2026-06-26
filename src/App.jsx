@@ -134,6 +134,17 @@ function App() {
     const savedTheme = localStorage.getItem('noor_theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
+    // Auto-activate waiting service worker on mount/refresh
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const registration of registrations) {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+      });
+    }
+
     const triggerSyncAndBroadcast = async (userId) => {
       try {
         await syncOfflineData(userId);
@@ -236,9 +247,9 @@ function App() {
               gap: '16px',
               padding: '12px 20px',
               borderRadius: '16px',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              background: 'rgba(2, 6, 23, 0.95)',
-              boxShadow: '0 8px 32px rgba(59, 130, 246, 0.25)',
+              border: '1px solid var(--primary-glow)',
+              background: 'var(--nav-bg)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
               width: '90%',
               maxWidth: '450px',
               color: 'var(--text-main)'
