@@ -17,6 +17,7 @@ const Settings = ({ session }) => {
   const user = session?.user;
   const [isDark, setIsDark] = useState(() => localStorage.getItem('noor_theme') === 'dark');
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => localStorage.getItem('noor_notifications') !== 'false');
+  const [exporting, setExporting] = useState(false);
 
   const handleSignOut = async () => {
     if (window.confirm('Are you sure you want to sign out?')) {
@@ -78,91 +79,146 @@ const Settings = ({ session }) => {
     </div>
   );
 
-  const handleExportData = () => {
-    const doc = new jsPDF('landscape');
-    doc.setFontSize(16);
-    doc.text("Noor App - Detailed Activity Report", 14, 15);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+  const handleExportData = async () => {
+    if (exporting) return;
+    setExporting(true);
 
-    const userId = session?.user?.id;
-    const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
-    let earliestDate = new Date();
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
-        const dateStr = key.replace(prefix, '');
-        const d = parseLocalDate(dateStr);
-        if (!isNaN(d) && d < earliestDate) {
-          earliestDate = d;
+    try {
+      const doc = new jsPDF('landscape');
+      doc.setFontSize(16);
+      doc.text("Noor App - Detailed Activity Report", 14, 15);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+      const userId = session?.user?.id;
+      const prefix = userId ? `worship_cache_${userId}_` : `worship_cache_`;
+      let earliestDate = new Date();
+      let dbRecords = [];
+      let dbCompletions = [];
+
+      // 1. Fetch from Database if logged in
+      if (userId) {
+        const { data: rData } = await supabase
+          .from('worship_records')
+          .select('*')
+          .eq('user_id', userId);
+          
+        if (rData && rData.length > 0) {
+          dbRecords = rData;
+          const recordIds = rData.map(r => r.id);
+          
+          const { data: cData } = await supabase
+            .from('task_completions')
+            .select('*')
+            .in('worship_record_id', recordIds);
+          dbCompletions = cData || [];
+          
+          rData.forEach(r => {
+            const d = parseLocalDate(r.record_date);
+            if (!isNaN(d) && d < earliestDate) {
+              earliestDate = d;
+            }
+          });
         }
       }
-    }
 
-    const daysDiff = Math.max(0, differenceInDays(new Date(), earliestDate));
-    const allDays = Array.from({ length: daysDiff + 1 }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd'));
-
-    const tableData = [];
-    const categories = ['Tahajjud', 'Fajr', 'Duha', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Recitation'];
-
-    allDays.forEach(dateStr => {
-      let localCache = {};
-      try {
-        const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
-        localCache = JSON.parse(localStorage.getItem(localCacheKey)) || {};
-      } catch (e) {}
-      
-      const dayTasksRaw = generateDailyTasks(parseLocalDate(dateStr));
-      
-      let overallCompleted = 0;
-      let overallTotal = dayTasksRaw.length;
-      
-      const catStats = {};
-      categories.forEach(c => catStats[c] = { comp: 0, tot: 0 });
-
-      dayTasksRaw.forEach(task => {
-        const isComp = localCache && localCache[task.id]?.is_completed;
-        if (isComp) overallCompleted++;
-        
-        if (catStats[task.category]) {
-          catStats[task.category].tot++;
-          if (isComp) catStats[task.category].comp++;
+      // 2. Also check local storage for earliest date
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          const dateStr = key.replace(prefix, '');
+          const d = parseLocalDate(dateStr);
+          if (!isNaN(d) && d < earliestDate) {
+            earliestDate = d;
+          }
         }
+      }
+
+      const daysDiff = Math.max(0, differenceInDays(new Date(), earliestDate));
+      const allDays = Array.from({ length: daysDiff + 1 }).map((_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd'));
+
+      const tableData = [];
+      const categories = ['Tahajjud', 'Fajr', 'Duha', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Recitation'];
+
+      allDays.forEach(dateStr => {
+        // Build DB Cache for this day
+        const dayDbCache = {};
+        const dbRecordForDay = dbRecords.find(r => r.record_date === dateStr);
+        if (dbRecordForDay) {
+          const completionsForDay = dbCompletions.filter(c => c.worship_record_id === dbRecordForDay.id);
+          completionsForDay.forEach(c => {
+            dayDbCache[c.task_id] = { is_completed: c.is_completed, count_reached: c.count_reached };
+          });
+        }
+
+        // Get Local Cache for this day
+        let localCache = {};
+        try {
+          const localCacheKey = userId ? `worship_cache_${userId}_${dateStr}` : `worship_cache_${dateStr}`;
+          const localCacheStr = localStorage.getItem(localCacheKey);
+          localCache = localCacheStr ? JSON.parse(localCacheStr) : {};
+        } catch (e) {}
+        
+        // Merge them
+        const mergedCache = { ...dayDbCache, ...localCache };
+
+        const dayTasksRaw = generateDailyTasks(parseLocalDate(dateStr));
+        
+        let overallCompleted = 0;
+        let overallTotal = dayTasksRaw.length;
+        
+        const catStats = {};
+        categories.forEach(c => catStats[c] = { comp: 0, tot: 0 });
+
+        dayTasksRaw.forEach(task => {
+          const isComp = mergedCache && mergedCache[task.id]?.is_completed;
+          if (isComp) overallCompleted++;
+          
+          if (catStats[task.category]) {
+            catStats[task.category].tot++;
+            if (isComp) catStats[task.category].comp++;
+          }
+        });
+        
+        const overallScore = overallTotal === 0 ? 0 : Math.round((overallCompleted / overallTotal) * 100);
+        
+        const row = [
+          dateStr,
+          `${overallScore}%`
+        ];
+
+        categories.forEach(c => {
+          const stats = catStats[c];
+          const score = stats.tot === 0 ? '-' : `${Math.round((stats.comp / stats.tot) * 100)}%`;
+          row.push(score);
+        });
+
+        tableData.push(row);
       });
-      
-      const overallScore = overallTotal === 0 ? 0 : Math.round((overallCompleted / overallTotal) * 100);
-      
-      const row = [
-        dateStr,
-        `${overallScore}%`
-      ];
 
-      categories.forEach(c => {
-        const stats = catStats[c];
-        const score = stats.tot === 0 ? '-' : `${Math.round((stats.comp / stats.tot) * 100)}%`;
-        row.push(score);
+      if (tableData.length === 0) {
+        tableData.push(["No data recorded yet", "-", "-", "-", "-", "-", "-", "-", "-", "-"]);
+      }
+
+      autoTable(doc, {
+        startY: 30,
+        head: [['Date', 'Overall', ...categories]],
+        body: tableData,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
+        columnStyles: { 0: { halign: 'left' } },
+        headStyles: { fillColor: [59, 130, 246] }
       });
 
-      tableData.push(row);
-    });
-
-    if (tableData.length === 0) {
-      tableData.push(["No data recorded yet", "-", "-", "-", "-", "-", "-", "-", "-", "-"]);
+      const exportFileDefaultName = `noor_detailed_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(exportFileDefaultName);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export detailed report. Please try again.");
+    } finally {
+      setExporting(false);
     }
-
-    autoTable(doc, {
-      startY: 30,
-      head: [['Date', 'Overall', ...categories]],
-      body: tableData,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
-      columnStyles: { 0: { halign: 'left' } },
-      headStyles: { fillColor: [59, 130, 246] }
-    });
-
-    const exportFileDefaultName = `noor_detailed_report_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(exportFileDefaultName);
   };
 
   return (
@@ -195,7 +251,7 @@ const Settings = ({ session }) => {
       </p>
       
       <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', marginLeft: '4px', marginTop: '24px' }}>Data & Privacy</h3>
-      <SettingRow icon={Download} label="Export My Data" color="#3b82f6" onClick={handleExportData} />
+      <SettingRow icon={Download} label={exporting ? "Exporting..." : "Export My Data"} color="#3b82f6" onClick={handleExportData} />
 
       <button 
         onClick={handleSignOut}
