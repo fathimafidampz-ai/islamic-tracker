@@ -186,18 +186,20 @@ const Analytics = ({ session }) => {
           categoryBreakdown,
           completedCount,
           totalTaskCount,
-          worship_record_id: dbRecordForDay ? dbRecordForDay.id : null // Store for potential DB updates via modal
+          worship_record_id: dbRecordForDay ? dbRecordForDay.id : null, // Store for potential DB updates via modal
+          points: dayPoints
         };
       });
 
       const todayDateStr = format(new Date(), 'yyyy-MM-dd');
       const todayData = chartData.find(d => d.fullDate === todayDateStr);
       const todayScore = todayData ? todayData.score : 0;
+      const todayPoints = todayData ? todayData.points : 0;
 
       setStats({
         todayScore,
         currentStreak,
-        totalPoints
+        totalPoints: todayPoints
       });
       setData(chartData);
 
@@ -311,7 +313,7 @@ const Analytics = ({ session }) => {
         <div className="glass-panel" style={{ padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Trophy size={24} color="#10b981" style={{ marginBottom: '8px' }} />
           <h2 style={{ fontSize: '1.4rem' }}>{stats.totalPoints}</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Points</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Today's Points</p>
         </div>
       </div>
 
